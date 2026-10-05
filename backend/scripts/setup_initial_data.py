@@ -99,16 +99,14 @@ def setup_poc_database() -> str:
     try:
         from scripts.setup_poc_db import (
             get_poc_config,
-            get_admin_config,
-            ensure_database_and_role,
+            verify_poc_database,
             initialize_application_tables,
             validate_poc_database,
         )
         from app.db.connection import get_poc_engine
 
         poc_config = get_poc_config()
-        admin_config = get_admin_config(poc_config)
-        db_status = ensure_database_and_role(poc_config, admin_config)
+        db_status = verify_poc_database(poc_config)
 
         engine = get_poc_engine()
         initialize_application_tables(engine)

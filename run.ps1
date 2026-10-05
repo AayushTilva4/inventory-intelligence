@@ -34,14 +34,44 @@ Write-Host "Launching Frontend (Next.js on http://localhost:3000)..." -Foregroun
 $FrontendBlock = "& { Set-Location '$FrontendDir'; npm run dev }"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $FrontendBlock
 
-Start-Sleep -Seconds 3
+Write-Host "Waiting for services to initialize..." -ForegroundColor Gray
+
+$BackendReady = $false
+$FrontendReady = $false
+
+for ($i = 0; $i -lt 15; $i++) {
+    Start-Sleep -Seconds 1
+    if (-not $BackendReady) {
+        try {
+            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($resp.StatusCode -eq 200) { $BackendReady = $true }
+        } catch {}
+    }
+    if (-not $FrontendReady) {
+        try {
+            $resp = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+            if ($resp.StatusCode -eq 200) { $FrontendReady = $true }
+        } catch {}
+    }
+    if ($BackendReady -and $FrontendReady) { break }
+}
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host " Services Running" -ForegroundColor Cyan
+Write-Host " Services Status" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "  Backend:  http://127.0.0.1:8000" -ForegroundColor White
-Write-Host "  Frontend: http://localhost:3000" -ForegroundColor White
+if ($BackendReady) {
+    Write-Host "  Backend:  http://127.0.0.1:8000 [ONLINE]" -ForegroundColor Green
+} else {
+    Write-Host "  Backend:  http://127.0.0.1:8000 [STARTING/CHECK LOGS]" -ForegroundColor Yellow
+}
+
+if ($FrontendReady) {
+    Write-Host "  Frontend: http://localhost:3000 [ONLINE]" -ForegroundColor Green
+} else {
+    Write-Host "  Frontend: http://localhost:3000 [STARTING/CHECK LOGS]" -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "To stop services, run .\stop.ps1 or close the service windows." -ForegroundColor Gray
 Write-Host ""

@@ -28,17 +28,6 @@ POC_DB_PASSWORD=your_poc_password
 FORECAST_ENGINE_ROOT=../forecasting-engine
 ```
 
-### Optional PostgreSQL Admin Variables
-If the POC database or user role does not exist yet and the POC user lacks `CREATEDB` / superuser permissions, provide administrator credentials for one-time initialization:
-```env
-PG_ADMIN_HOST=localhost      # Optional: defaults to POC_DB_HOST
-PG_ADMIN_PORT=5432           # Optional: defaults to POC_DB_PORT
-PG_ADMIN_DB=postgres         # Optional: defaults to 'postgres'
-PG_ADMIN_USER=postgres       # Optional: defaults to 'postgres'
-PG_ADMIN_PASSWORD=your_admin_password
-```
-*(Admin credentials are read only during initial DB creation and never stored anywhere).*
-
 ---
 
 ## 2. Setup Commands
@@ -46,7 +35,7 @@ PG_ADMIN_PASSWORD=your_admin_password
 Execute the setup flow in two clean steps from the `backend/` directory:
 
 ### Step 1: Run Database Setup
-Idempotently creates the POC database role/schema and initializes application tables.
+Connects to the pre-created POC database and idempotently initializes/validates application tables.
 ```bash
 python scripts/setup_poc_db.py
 ```

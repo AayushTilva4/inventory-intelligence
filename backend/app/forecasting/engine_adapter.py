@@ -20,11 +20,7 @@ def get_forecasting_engine_root() -> Path:
     env_path = POC_ROOT / ".env"
     load_dotenv(env_path)
 
-    configured_root = os.getenv("FORECAST_ENGINE_ROOT")
-    if not configured_root:
-        raise RuntimeError(
-            f"Missing FORECAST_ENGINE_ROOT configuration in {env_path}"
-        )
+    configured_root = os.getenv("FORECAST_ENGINE_ROOT") or "../forecasting-engine"
 
     engine_root = Path(configured_root).expanduser()
     if not engine_root.is_absolute():

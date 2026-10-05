@@ -1,7 +1,13 @@
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 import pandas as pd
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 import app.forecasting.benchmark_v2.runner as runner_module
 from app.forecasting.benchmark_v2.models import BENCHMARK_MODELS

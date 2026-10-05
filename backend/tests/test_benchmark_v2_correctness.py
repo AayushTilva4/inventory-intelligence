@@ -7,10 +7,16 @@ Unit tests for Forecast Benchmark V2.1 correctness fixes:
 - Task 7: Reproducibility (deterministic forecasts and metrics)
 """
 
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 import numpy as np
 import pandas as pd
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.forecasting.benchmark_v2.metrics import calculate_metrics, calculate_mase_scale
 from app.forecasting.benchmark_v2.classification import classify_demand_pattern

@@ -1,12 +1,10 @@
 import os
 import sys
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any
 
 from dotenv import load_dotenv
 import psycopg2
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy import inspect, text
 
 
@@ -78,45 +76,11 @@ def get_poc_config() -> dict[str, Any]:
     }
 
 
-def get_admin_config(poc_config: dict[str, Any]) -> dict[str, Any]:
+def verify_poc_database(poc_config: dict[str, Any]) -> str:
     """
-    Read optional PostgreSQL administrator credentials.
-    Defaults host and port to the POC configuration and maintenance DB to 'postgres'.
+    Directly verify that the POC database exists and can be connected to using POC credentials.
+    Fails with a clear message if the database cannot be connected to.
     """
-    host = os.getenv("PG_ADMIN_HOST") or poc_config["host"]
-    port = os.getenv("PG_ADMIN_PORT") or str(poc_config["port"])
-    database = os.getenv("PG_ADMIN_DB", "postgres")
-    user = os.getenv("PG_ADMIN_USER", "postgres")
-    password = os.getenv("PG_ADMIN_PASSWORD") or os.getenv("POSTGRES_PASSWORD") or os.getenv("PGPASSWORD")
-
-    return {
-        "host": host,
-        "port": int(port),
-        "database": database,
-        "user": user,
-        "password": password,
-    }
-
-
-def _check_db_and_role_exists(cursor, db_name: str, role_name: str) -> Tuple[bool, bool]:
-    cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s;", (role_name,))
-    role_exists = cursor.fetchone() is not None
-
-    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (db_name,))
-    db_exists = cursor.fetchone() is not None
-
-    return db_exists, role_exists
-
-
-def ensure_database_and_role(
-    poc_config: dict[str, Any],
-    admin_config: dict[str, Any],
-) -> str:
-    """
-    Ensures that the POC database and user role exist without dropping any existing database.
-    Returns: 'EXISTS' or 'CREATED'.
-    """
-    # 1. First test if we can directly connect to the target POC database with POC credentials
     try:
         conn = psycopg2.connect(
             host=poc_config["host"],
@@ -128,112 +92,20 @@ def ensure_database_and_role(
         )
         conn.close()
         return "EXISTS"
-    except psycopg2.OperationalError as op_err:
-        err_msg = str(op_err)
-        # Check if server is completely unreachable
-        if "could not connect to server" in err_msg.lower() or "connection refused" in err_msg.lower():
-            raise RuntimeError(
-                f"Cannot connect to PostgreSQL server at {poc_config['host']}:{poc_config['port']}.\n"
-                "Please verify that the PostgreSQL service is running and accepting connections."
-            ) from op_err
-
-    # 2. Database or role does not exist or requires creation.
-    # Try connecting to the maintenance database ('postgres' or admin db) to inspect/create.
-    maintenance_conn = None
-    is_admin = False
-
-    # Attempt A: Try with POC credentials on maintenance db (e.g. if POC user has CREATEDB)
-    try:
-        maintenance_conn = psycopg2.connect(
-            host=poc_config["host"],
-            port=poc_config["port"],
-            dbname="postgres",
-            user=poc_config["user"],
-            password=poc_config["password"],
-            connect_timeout=5,
-        )
-    except psycopg2.Error:
-        maintenance_conn = None
-
-    # Attempt B: If POC credentials did not work, try admin credentials
-    if maintenance_conn is None and admin_config.get("password") is not None:
-        try:
-            maintenance_conn = psycopg2.connect(
-                host=admin_config["host"],
-                port=admin_config["port"],
-                dbname=admin_config["database"],
-                user=admin_config["user"],
-                password=admin_config["password"],
-                connect_timeout=5,
-            )
-            is_admin = True
-        except psycopg2.Error:
-            maintenance_conn = None
-
-    # Attempt C: Try admin user with no password if not set
-    if maintenance_conn is None and admin_config.get("password") is None:
-        try:
-            maintenance_conn = psycopg2.connect(
-                host=admin_config["host"],
-                port=admin_config["port"],
-                dbname=admin_config["database"],
-                user=admin_config["user"],
-                connect_timeout=5,
-            )
-            is_admin = True
-        except psycopg2.Error:
-            maintenance_conn = None
-
-    if maintenance_conn is None:
+    except Exception as exc:
+        db_name = poc_config.get("database", "POC database")
         raise RuntimeError(
-            f"Cannot connect to the POC database '{poc_config['database']}' or create it.\n\n"
-            "If this is the first-time setup and the database/user has not been created yet,\n"
-            "please set PostgreSQL administrator credentials in your environment or backend/.env:\n"
-            "  PG_ADMIN_USER=postgres\n"
-            "  PG_ADMIN_PASSWORD=<your_postgres_admin_password>\n"
-            "  PG_ADMIN_HOST=localhost (optional, defaults to POC_DB_HOST)\n"
-            "  PG_ADMIN_PORT=5432 (optional, defaults to POC_DB_PORT)\n"
-            "  PG_ADMIN_DB=postgres (optional, defaults to 'postgres')"
-        )
+            f"POC database '{db_name}' must already exist. "
+            f"Create the empty PostgreSQL database first, then rerun setup.ps1.\n"
+            f"Connection error: {exc}"
+        ) from exc
 
-    try:
-        maintenance_conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        with maintenance_conn.cursor() as cur:
-            db_exists, role_exists = _check_db_and_role_exists(
-                cur,
-                poc_config["database"],
-                poc_config["user"],
-            )
 
-            # Create missing role if using admin connection
-            if not role_exists:
-                if not is_admin:
-                    raise RuntimeError(
-                        f"Role '{poc_config['user']}' does not exist and current connection lacks "
-                        "admin permissions to create roles. Please provide PG_ADMIN_PASSWORD."
-                    )
-                create_role_stmt = sql.SQL(
-                    "CREATE ROLE {} WITH LOGIN PASSWORD {};"
-                ).format(
-                    sql.Identifier(poc_config["user"]),
-                    sql.Literal(poc_config["password"]),
-                )
-                cur.execute(create_role_stmt)
-
-            # Create missing database
-            if not db_exists:
-                create_db_stmt = sql.SQL(
-                    "CREATE DATABASE {} OWNER {};"
-                ).format(
-                    sql.Identifier(poc_config["database"]),
-                    sql.Identifier(poc_config["user"]),
-                )
-                cur.execute(create_db_stmt)
-                return "CREATED"
-            else:
-                return "EXISTS"
-    finally:
-        maintenance_conn.close()
+def ensure_database_and_role(poc_config: dict[str, Any], *args, **kwargs) -> str:
+    """
+    Compatibility wrapper for verify_poc_database.
+    """
+    return verify_poc_database(poc_config)
 
 
 def initialize_application_tables(engine) -> None:
@@ -489,10 +361,9 @@ def main() -> int:
         load_environment()
 
         poc_config = get_poc_config()
-        admin_config = get_admin_config(poc_config)
 
-        # Ensure database & user role exist
-        db_status = ensure_database_and_role(poc_config, admin_config)
+        # Verify POC database connection
+        db_status = verify_poc_database(poc_config)
 
         # Connect to POC database using POC engine
         from app.db.connection import get_poc_engine
