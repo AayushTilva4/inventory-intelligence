@@ -4,6 +4,13 @@ $ErrorActionPreference = "Stop"
 # Set Console UTF-8 Encoding
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# Limit numerical-library threads to avoid OpenBLAS memory allocation failures
+# during forecasting/data initialization on Windows machines.
+$env:OPENBLAS_NUM_THREADS = "1"
+$env:OMP_NUM_THREADS = "1"
+$env:MKL_NUM_THREADS = "1"
+$env:NUMEXPR_NUM_THREADS = "1"
+
 # 1. Resolve repository paths dynamically from script location
 $RepoRoot = $PSScriptRoot
 $BackendDir = Join-Path $RepoRoot "backend"
