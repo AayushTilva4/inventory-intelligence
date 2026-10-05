@@ -45,9 +45,34 @@ def _resolve_main_product_template(product_id: int) -> dict[str, Any] | None:
         ).mappings().first()
 
 
+_group_demand_cache: dict[int, dict[str, Any]] = {}
+_global_last_month_cache: Any = None
+
+
+def _get_global_last_sales_month(connection) -> Any:
+    global _global_last_month_cache
+    if _global_last_month_cache is not None:
+        return _global_last_month_cache
+
+    val = connection.execute(
+        text(
+            """
+            SELECT MAX(date_trunc('month', date_order))::date
+            FROM sale_order
+            WHERE state = 'sale'
+            """
+        )
+    ).scalar()
+    _global_last_month_cache = val
+    return val
+
+
 def get_group_monthly_demand(
     main_product_template_id: int,
 ) -> dict[str, Any] | None:
+    if main_product_template_id in _group_demand_cache:
+        return _group_demand_cache[main_product_template_id]
+
     engine = _get_odoo_engine()
     with engine.connect() as connection:
         main_product = connection.execute(
@@ -62,6 +87,8 @@ def get_group_monthly_demand(
         ).mappings().first()
         if main_product is None:
             return None
+
+        last_month = _get_global_last_sales_month(connection)
 
         rows = connection.execute(
             text(
@@ -80,15 +107,7 @@ def get_group_monthly_demand(
                 ), series_bounds AS (
                     SELECT
                         MIN(month) AS first_month,
-                        (
-                            SELECT MAX(date_trunc('month', sales_order.date_order)::date)
-                            FROM sale_order_line sales_line
-                            JOIN sale_order sales_order
-                                ON sales_order.id = sales_line.order_id
-                            WHERE sales_order.state = 'sale'
-                              AND sales_line.product_id IS NOT NULL
-                              AND sales_line.display_type IS NULL
-                        ) AS last_month
+                        COALESCE(:last_month, MAX(month)) AS last_month
                     FROM group_monthly
                 ), complete_months AS (
                     SELECT generate_series(
@@ -110,7 +129,10 @@ def get_group_monthly_demand(
                 ORDER BY complete_months.month
                 """
             ),
-            {"main_product_template_id": main_product_template_id},
+            {
+                "main_product_template_id": main_product_template_id,
+                "last_month": last_month,
+            },
         ).mappings().all()
 
     months = [
@@ -121,13 +143,15 @@ def get_group_monthly_demand(
         sum((row["actual"] for row in rows), Decimal("0"))
     )
 
-    return {
+    result = {
         "main_product_template_id": main_product["id"],
         "main_product_name": main_product["product_name"],
         "months": months,
         "total_demand": total_demand,
         "months_with_demand": sum(row["actual"] > 0 for row in rows),
     }
+    _group_demand_cache[main_product_template_id] = result
+    return result
 
 
 def get_group_demand_history(product_id: int) -> dict[str, Any] | None:
@@ -137,4 +161,4 @@ def get_group_demand_history(product_id: int) -> dict[str, Any] | None:
 
     return get_group_monthly_demand(
         int(main_product["product_template_id"])
-    )
+    )

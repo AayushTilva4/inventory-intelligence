@@ -7,6 +7,8 @@ from app.forecasting.engine_adapter import (
     load_forecasting_inputs,
     load_existing_engine,
 )
+from app.inventory.recommendation_engine import build_recommendation
+from app.odoo.product_group_service import get_product_group
 
 DATA_ROOT = Path(__file__).resolve().parents[2] / "data"
 CANDIDATES_CSV = DATA_ROOT / "historical_similar_product_candidates.csv"
@@ -173,6 +175,24 @@ def get_product_forecast(product_id: int) -> dict[str, Any]:
 
     result["analogue_history"] = analogue_history
     result["similar_products"] = get_similar_products_for_id(product_id)
+
+    recommendation = build_recommendation(result)
+    result["buffered_target_stock"] = recommendation["buffered_target_stock"]
+
+    product_group = get_product_group(product_id)
+    if product_group is not None:
+        individual_stock = next(
+            (
+                member
+                for member in product_group["group_members"]
+                if member["product_id"] == product_id
+            ),
+            None,
+        )
+        if individual_stock is not None:
+            result["current_stock"] = individual_stock["current_stock"]
+            result["usable_qty"] = individual_stock["usable_qty"]
+            result["cut_piece_qty"] = individual_stock["cut_piece_qty"]
 
     # Clean NaNs to None for valid JSON serialization
     for k, v in list(result.items()):

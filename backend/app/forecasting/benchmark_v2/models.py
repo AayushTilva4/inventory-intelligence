@@ -4,15 +4,15 @@ Wraps the untouched existing V1 models to support multi-step horizons (1 to 5 mo
 """
 
 import sys
-from pathlib import Path
 from typing import Sequence
 import numpy as np
 import pandas as pd
 
-# Ensure AI-Demand-System is importable
-EXISTING_ENGINE_ROOT = Path(r"E:\AI-Demand-System")
-if str(EXISTING_ENGINE_ROOT) not in sys.path:
-    sys.path.insert(0, str(EXISTING_ENGINE_ROOT))
+from app.forecasting.engine_adapter import get_forecasting_engine_root
+
+engine_root = str(get_forecasting_engine_root())
+if engine_root not in sys.path:
+    sys.path.insert(0, engine_root)
 
 # Import untouched existing V1 forecasting functions
 from src.forecasting import (

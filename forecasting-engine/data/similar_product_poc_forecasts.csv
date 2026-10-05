@@ -1,0 +1,11 @@
+status,best_model,ranked_by,MAE,WAPE,MASE,confidence,next_month_forecast,months_available,trend,trend_pct_change,reorder_point,avg_monthly_demand,dead_stock,dead_stock_reason,suggested_discount_pct,months_since_last_sale,stock_on_hand,product_id,product_name,analogue_count,analogue_products,analogue_details,scenario
+ok,moving_average_3,MASE,7.33,1.4194,0.5203,normal,0.0,39,falling,-1.0,20.7,5.2,False,,,3.0,16.75,604,330-08,,,,normal_healthy
+ok,previous_month,MASE,0.0,0.0,0.0,trivial_zero,0.0,39,flat,0.0,0.0,0.0,True,no_sales_in_38_months,50.0,38.0,871.0,1047,314-09,,,,dead_stock_candidate
+ok,seasonal_naive,MASE,1.25,1.0,13.125,low,0.0,39,falling,-1.0,5.0,1.2,False,,,4.0,630.5,5448,353-20,,,,intermittent
+ok,exponential_smoothing,MASE,0.02,1.0,0.001,normal,0.0,26,flat,,0.1,0.0,False,,,4.0,147.7,9220,392-31,,,,low_demand
+ok,previous_month,MASE,0.37,22.0,0.1901,normal,0.0,32,flat,,0.1,0.0,False,,,4.0,495.8,9436,Naples-03,,,,excess_stock
+ok,croston,MASE,95.94,0.415,0.465,normal,255.2,23,flat,0.1689,924.7,231.2,False,,,0.0,151.0,16697,413-11,,,,fast_moving
+ok,seasonal_naive,MASE,126.92,0.9579,3.6523,low,2.0,22,rising,5.0,530.0,132.5,False,,,1.0,142.0,16905,415-39,,,,rising_demand
+ok,previous_month,MASE,0.0,0.0,0.0,trivial_zero,0.0,19,flat,0.0,0.0,0.0,True,no_sales_in_7_months,15.0,7.0,196.5,17402,419-33,,,,falling_demand
+cold_start_category_average,,,,,,very_low,72.3,2,unknown,,289.4,72.3,,,,,,22596,Buckby Latte - AW,,,,reorder_needed
+cold_start_historical_analogue,,,,,,low,6.3,1,unknown,,25.2,6.3,,,,,,22662,433-47,1.0,['351-42'],"[{'old_product_id': 54, 'old_product_name': '351-42', 'old_selling_months': 14.0, 'forecast_signal': 0.0, 'link_sources': 'similar_relation'}]",cold_start

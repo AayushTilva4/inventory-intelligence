@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -10,7 +11,8 @@ from app.forecasting.engine_adapter import (
 from app.inventory.recommendation_engine import build_recommendation
 
 
-POC_PRODUCTS = r"E:\Agent\backend\data\poc_products.csv"
+DATA_ROOT = Path(__file__).resolve().parents[1] / "data"
+POC_PRODUCTS = DATA_ROOT / "poc_products.csv"
 
 
 def json_safe(value):
@@ -125,15 +127,9 @@ def main() -> None:
     print("Saving recommendations to POC PostgreSQL...")
     save_recommendations(recommendations)
 
-    results.to_csv(
-        r"E:\Agent\backend\data\poc_forecasts.csv",
-        index=False,
-    )
+    results.to_csv(DATA_ROOT / "poc_forecasts.csv", index=False)
 
-    recommendations.to_csv(
-        r"E:\Agent\backend\data\poc_recommendations.csv",
-        index=False,
-    )
+    recommendations.to_csv(DATA_ROOT / "poc_recommendations.csv", index=False)
 
     print("Done.")
     print("Odoo was read-only.")

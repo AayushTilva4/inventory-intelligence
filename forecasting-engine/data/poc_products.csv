@@ -1,0 +1,11 @@
+scenario,product_id
+fast_moving,16697
+rising_demand,16905
+falling_demand,17402
+low_demand,9220
+reorder_needed,22596
+excess_stock,9436
+intermittent,5448
+dead_stock_candidate,1047
+cold_start,22662
+normal_healthy,604

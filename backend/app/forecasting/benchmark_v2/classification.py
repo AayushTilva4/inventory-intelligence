@@ -23,14 +23,14 @@ def classify_demand_pattern(
 ) -> dict[str, Any]:
     """
     Classifies a product's continuous monthly demand series into one of 8 operational demand patterns.
-    
+
     Parameters:
     - series: pd.Series of monthly sales quantities (continuous monthly series available up to as-of date)
     - stock_on_hand: inventory level. For historical as-of-origin classification, this MUST be 0.0 (or omitted)
       to avoid lookahead leakage from future/current stock levels. For current-state reporting, pass the
       current stock on hand from stock_quant.
     - product_df: optional DataFrame containing 'month' and 'total_quantity' columns
-    
+
     Returns:
     - pattern: str (one of the 8 standard demand patterns)
     - metrics: dict of computed operational features

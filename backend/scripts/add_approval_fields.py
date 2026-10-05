@@ -4,7 +4,7 @@ from pathlib import Path
 from sqlalchemy import text
 
 
-# Add E:\Agent\backend to Python's import path
+# Add the backend root to Python's import path.
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 

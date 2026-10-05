@@ -7,5 +7,5 @@ ok,previous_month,MASE,0.37,22.0,0.1901,normal,0.0,32,flat,,0.1,0.0,False,,,4.0,
 ok,croston,MASE,95.94,0.415,0.465,normal,255.2,23,flat,0.1689,924.7,231.2,False,,,0.0,151.0,16697,413-11,,,,fast_moving
 ok,seasonal_naive,MASE,126.92,0.9579,3.6523,low,2.0,22,rising,5.0,530.0,132.5,False,,,1.0,142.0,16905,415-39,,,,rising_demand
 ok,previous_month,MASE,0.0,0.0,0.0,trivial_zero,0.0,19,flat,0.0,0.0,0.0,True,no_sales_in_7_months,15.0,7.0,196.5,17402,419-33,,,,falling_demand
-cold_start_category_average,,,,,,very_low,72.3,2,unknown,,289.4,72.3,,,,,0.0,22596,Buckby Latte - AW,,,,reorder_needed
+cold_start_category_average,,,,,,very_low,1.0,2,unknown,,3.9,1.0,,,,,0.0,22596,Buckby Latte - AW,,,,reorder_needed
 cold_start_historical_analogue,,,,,,low,6.3,1,unknown,,25.2,6.3,,,,,8.1,22662,433-47,1.0,"[""351-42""]","[{""old_product_id"": 54, ""old_product_name"": ""351-42"", ""old_selling_months"": 14.0, ""forecast_signal"": 0.0, ""link_sources"": ""similar_relation""}]",cold_start

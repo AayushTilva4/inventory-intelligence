@@ -10,14 +10,35 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 
 POC_ROOT = Path(__file__).resolve().parents[2]
-EXISTING_ENGINE_ROOT = Path(r"E:\AI-Demand-System")
-SIMILAR_CANDIDATES_PATH = (
-    EXISTING_ENGINE_ROOT / "data" / "historical_similar_product_candidates.csv"
-)
 
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
+
+def get_forecasting_engine_root() -> Path:
+    """Resolve and validate the configured forecasting engine directory."""
+    env_path = POC_ROOT / ".env"
+    load_dotenv(env_path)
+
+    configured_root = os.getenv("FORECAST_ENGINE_ROOT")
+    if not configured_root:
+        raise RuntimeError(
+            f"Missing FORECAST_ENGINE_ROOT configuration in {env_path}"
+        )
+
+    engine_root = Path(configured_root).expanduser()
+    if not engine_root.is_absolute():
+        engine_root = POC_ROOT / engine_root
+    engine_root = engine_root.resolve()
+
+    if not engine_root.is_dir():
+        raise RuntimeError(
+            f"Forecasting engine directory does not exist: {engine_root} "
+            f"(configured by FORECAST_ENGINE_ROOT in {env_path})"
+        )
+
+    return engine_root
+
 
 def load_poc_environment() -> None:
     """Load the POC .env and map its Odoo settings to the legacy engine's
@@ -58,7 +79,7 @@ def load_existing_engine():
     """Make the existing forecasting project importable without modifying it."""
     load_poc_environment()
 
-    engine_root = str(EXISTING_ENGINE_ROOT)
+    engine_root = str(get_forecasting_engine_root())
 
     if engine_root not in sys.path:
         sys.path.insert(0, engine_root)
@@ -97,9 +118,14 @@ def load_forecasting_inputs():
     category_map = engine["fetch_product_categories"]()
 
     stock_df = engine["fetch_stock_on_hand"]()
-    if SIMILAR_CANDIDATES_PATH.exists():
+    similar_candidates_path = (
+        get_forecasting_engine_root()
+        / "data"
+        / "historical_similar_product_candidates.csv"
+    )
+    if similar_candidates_path.exists():
         similar_candidates = engine["load_similarity_candidates"](
-            SIMILAR_CANDIDATES_PATH
+            similar_candidates_path
         )
     else:
         similar_candidates = pd.DataFrame()

@@ -19,8 +19,32 @@ def _finite_number(value: Any, digits: int | None = None) -> float | None:
     return round(result, digits) if digits is not None else result
 
 
+def _get_next_months(start_month_str: str | None, count: int = 3) -> list[str]:
+    if not start_month_str:
+        return []
+    parts = start_month_str.split("-")
+    if len(parts) < 2:
+        return []
+    year = int(parts[0])
+    month = int(parts[1])
+    months = []
+    for _ in range(count):
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+        months.append(f"{year:04d}-{month:02d}")
+    return months
+
+
+_group_forecast_cache: dict[int, dict[str, Any]] = {}
+
+
 def get_group_forecast(product_id: int) -> dict[str, Any] | None:
     """Forecast total demand for the product's canonical main-product group."""
+    if product_id in _group_forecast_cache:
+        return _group_forecast_cache[product_id]
+
     demand = get_group_demand_history(product_id)
     if demand is None:
         return None
@@ -46,6 +70,7 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
         "history_start": group_history[0]["month"] if group_history else None,
         "history_end": group_history[-1]["month"] if group_history else None,
         "next_month_forecast": None,
+        "forecast_3_months": [],
         "best_model": None,
         "confidence": None,
         "mae": None,
@@ -56,10 +81,12 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
     }
 
     if len(sales) < MINIMUM_HISTORY:
+        _group_forecast_cache[product_id] = result
         return result
 
     load_existing_engine()
-    from src.evaluation import MODEL_FUNCS, pick_best_model, run_walk_forward
+    from src.evaluation import pick_best_model, run_walk_forward
+    from app.forecasting.benchmark_v2.models import forecast_multistep
 
     evaluation = run_walk_forward(
         sales,
@@ -68,21 +95,38 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
     )
     evaluation_df = evaluation["evaluation"]
 
+    future_months = _get_next_months(
+        group_history[-1]["month"] if group_history else None,
+        3,
+    )
+
     if evaluation_df.empty:
+        mean_val = round(float(sales.mean()), 1)
         result["status"] = "all_models_failed"
-        result["next_month_forecast"] = round(float(sales.mean()), 1)
+        result["next_month_forecast"] = mean_val
+        result["forecast_3_months"] = [
+            {"month": m, "forecast": mean_val} for m in future_months
+        ]
+        _group_forecast_cache[product_id] = result
         return result
 
     best, _ = pick_best_model(evaluation_df)
     if best is None:
+        mean_val = round(float(sales.mean()), 1)
         result["status"] = "no_valid_metric"
-        result["next_month_forecast"] = round(float(sales.mean()), 1)
+        result["next_month_forecast"] = mean_val
+        result["forecast_3_months"] = [
+            {"month": m, "forecast": mean_val} for m in future_months
+        ]
+        _group_forecast_cache[product_id] = result
         return result
 
     best_model = str(best["model"])
     try:
-        next_month_forecast = MODEL_FUNCS[best_model](sales)
+        multi_forecast = forecast_multistep(best_model, sales, max_horizon=3)
+        next_month_forecast = float(multi_forecast[0])
     except Exception:
+        multi_forecast = [float(sales.mean())] * 3
         next_month_forecast = float(sales.mean())
 
     train = evaluation["train"]
@@ -94,10 +138,16 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
         else "normal"
     )
 
+    forecast_3_months = [
+        {"month": m, "forecast": round(float(fc), 1)}
+        for m, fc in zip(future_months, multi_forecast)
+    ]
+
     result.update(
         {
             "status": "ok",
             "next_month_forecast": round(float(next_month_forecast), 1),
+            "forecast_3_months": forecast_3_months,
             "best_model": best_model,
             "confidence": confidence,
             "mae": _finite_number(best["MAE"], 2),
@@ -105,4 +155,5 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
             "mase": _finite_number(mase, 4),
         }
     )
+    _group_forecast_cache[product_id] = result
     return result

@@ -33,6 +33,9 @@ class InventoryRecommendation(BaseModel):
 
     reason_codes: list[str]
 
+    usable_qty: float | None = None
+    cut_piece_qty: float | None = None
+
     draft_po_number: str | None = None
     draft_po_status: str | None = None
     draft_po_created_at: datetime | str | None = None
@@ -101,6 +104,11 @@ class GroupDemandHistoryResponse(BaseModel):
     months_with_demand: int
 
 
+class GroupForecastStep(BaseModel):
+    month: str
+    forecast: float
+
+
 class GroupForecastResponse(BaseModel):
     status: str
     forecast_scope: str
@@ -111,6 +119,7 @@ class GroupForecastResponse(BaseModel):
     history_start: str | None
     history_end: str | None
     next_month_forecast: float | None
+    forecast_3_months: list[GroupForecastStep] | None = None
     best_model: str | None
     confidence: str | None
     mae: float | None
@@ -155,6 +164,7 @@ class PersistedGroupForecastResponse(BaseModel):
     history_start: str | None
     history_end: str | None
     next_month_forecast: float | None
+    forecast_3_months: list[GroupForecastStep] | None = None
     best_model: str | None
     confidence: str | None
     mae: float | None
@@ -203,6 +213,9 @@ class MainProductListItem(BaseModel):
     group_size: int
     group_valid: bool
     group_current_stock: float | None
+    group_usable_qty: float | None = None
+    group_cut_piece_qty: float | None = None
+    group_forecasted_stock: float | None = None
     group_next_month_forecast: float | None
     best_model: str | None
     confidence: str | None
@@ -220,9 +233,15 @@ class MainProductListItem(BaseModel):
 
 class MainProductIdentity(BaseModel):
     template_id: int
+    product_id: int | None = None
     name: str | None
     is_main_similar: bool | None
     current_stock: float | None
+    usable_qty: float | None = None
+    cut_piece_qty: float | None = None
+    forecasted_stock: float | None = None
+    incoming_qty: float | None = None
+    outgoing_qty: float | None = None
 
 
 class MainProductGroupMember(BaseModel):
@@ -232,6 +251,11 @@ class MainProductGroupMember(BaseModel):
     is_main_similar: bool | None
     main_product_template_id: int | None
     current_stock: float
+    usable_qty: float | None = None
+    cut_piece_qty: float | None = None
+    forecasted_stock: float | None = None
+    incoming_qty: float | None = None
+    outgoing_qty: float | None = None
 
 
 class MainProductGroupDetail(BaseModel):
@@ -242,6 +266,12 @@ class MainProductGroupDetail(BaseModel):
     persisted_group_valid: bool
     persisted_validation_issues: list[str]
     persisted_validation_warnings: list[str]
+    total_current_stock: float | None = None
+    total_usable_qty: float | None = None
+    total_cut_piece_qty: float | None = None
+    total_forecasted_stock: float | None = None
+    total_incoming_qty: float | None = None
+    total_outgoing_qty: float | None = None
     members: list[MainProductGroupMember]
 
 
@@ -250,3 +280,16 @@ class MainProductDetailResponse(BaseModel):
     group: MainProductGroupDetail
     forecast: PersistedGroupForecastResponse
     recommendation: PersistedGroupRecommendationResponse
+
+
+class CreateGroupPoRequest(BaseModel):
+    quantity: float
+
+
+class GroupPoResponse(BaseModel):
+    po_number: str
+    product_id: int
+    product_name: str
+    quantity: float
+    status: str
+    created_at: datetime | str | None = None

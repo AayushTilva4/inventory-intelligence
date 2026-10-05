@@ -38,7 +38,7 @@ def signup(req: SignupRequest):
         check = conn.execute(text("SELECT id FROM users WHERE email = :email"), {"email": req.email}).first()
         if check:
             raise HTTPException(status_code=400, detail="Email already registered")
-        
+
         pw_hash = hash_password(req.password)
         conn.execute(
             text("INSERT INTO users (name, email, password_hash) VALUES (:name, :email, :hash)"),
@@ -53,7 +53,7 @@ def login(req: LoginRequest):
         user = conn.execute(text("SELECT id, name, email, password_hash FROM users WHERE email = :email"), {"email": req.email}).first()
         if not user or not verify_password(req.password, user[3]):
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        
+
         token = jwt.encode(
             {"sub": str(user[0]), "name": user[1], "email": user[2], "exp": datetime.datetime.utcnow() + datetime.timedelta(days=1)},
             JWT_SECRET,

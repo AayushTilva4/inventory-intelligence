@@ -1,11 +1,10 @@
 import sys
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text
 
 from app.forecasting.engine_adapter import (
-    EXISTING_ENGINE_ROOT,
+    get_forecasting_engine_root,
     load_poc_environment,
 )
 
@@ -13,7 +12,7 @@ from app.forecasting.engine_adapter import (
 def _get_odoo_engine():
     load_poc_environment()
 
-    engine_root = str(EXISTING_ENGINE_ROOT)
+    engine_root = str(get_forecasting_engine_root())
     if engine_root not in sys.path:
         sys.path.insert(0, engine_root)
 
@@ -70,6 +69,40 @@ def _get_group_members(
     rows = connection.execute(
         text(
             """
+            WITH stock_summary AS (
+                SELECT
+                    sq.product_id,
+                    SUM(sq.quantity) AS current_stock,
+                    SUM(CASE WHEN slt.is_cut_piece IS TRUE THEN sq.quantity ELSE 0 END) AS cut_piece_qty,
+                    SUM(CASE WHEN slt.is_cut_piece IS NOT TRUE THEN sq.quantity ELSE 0 END) AS usable_qty
+                FROM stock_quant sq
+                JOIN stock_location sl ON sl.id = sq.location_id
+                LEFT JOIN stock_lot slt ON slt.id = sq.lot_id
+                WHERE sl.usage = 'internal'
+                GROUP BY sq.product_id
+            ),
+            incoming_summary AS (
+                SELECT
+                    sm.product_id,
+                    SUM(sm.product_qty) AS incoming_qty
+                FROM stock_move sm
+                JOIN stock_location sld ON sld.id = sm.location_dest_id
+                JOIN stock_location sls ON sls.id = sm.location_id
+                WHERE sm.state IN ('assigned', 'confirmed', 'waiting', 'partially_available')
+                  AND sld.usage = 'internal' AND sls.usage != 'internal'
+                GROUP BY sm.product_id
+            ),
+            outgoing_summary AS (
+                SELECT
+                    sm.product_id,
+                    SUM(sm.product_qty) AS outgoing_qty
+                FROM stock_move sm
+                JOIN stock_location sld ON sld.id = sm.location_dest_id
+                JOIN stock_location sls ON sls.id = sm.location_id
+                WHERE sm.state IN ('assigned', 'confirmed', 'waiting', 'partially_available')
+                  AND sls.usage = 'internal' AND sld.usage != 'internal'
+                GROUP BY sm.product_id
+            )
             SELECT
                 pp.id AS product_id,
                 pp.product_tmpl_id AS product_template_id,
@@ -78,18 +111,17 @@ def _get_group_members(
                 pt.main_product AS main_product_id,
                 pt.active AS template_active,
                 pp.active AS variant_active,
-                COALESCE(stock.current_stock, 0) AS current_stock
+                COALESCE(stock.current_stock, 0) AS current_stock,
+                COALESCE(stock.usable_qty, 0) AS usable_qty,
+                COALESCE(stock.cut_piece_qty, 0) AS cut_piece_qty,
+                COALESCE(inc.incoming_qty, 0) AS incoming_qty,
+                COALESCE(out.outgoing_qty, 0) AS outgoing_qty,
+                (COALESCE(stock.current_stock, 0) + COALESCE(inc.incoming_qty, 0) - COALESCE(out.outgoing_qty, 0)) AS forecasted_stock
             FROM product_template pt
             JOIN product_product pp ON pp.product_tmpl_id = pt.id
-            LEFT JOIN (
-                SELECT
-                    sq.product_id,
-                    SUM(sq.quantity) AS current_stock
-                FROM stock_quant sq
-                JOIN stock_location sl ON sl.id = sq.location_id
-                WHERE sl.usage = 'internal'
-                GROUP BY sq.product_id
-            ) stock ON stock.product_id = pp.id
+            LEFT JOIN stock_summary stock ON stock.product_id = pp.id
+            LEFT JOIN incoming_summary inc ON inc.product_id = pp.id
+            LEFT JOIN outgoing_summary out ON out.product_id = pp.id
             WHERE pt.main_product = :main_product_id
             ORDER BY pt.id, pp.id
             """
@@ -316,6 +348,11 @@ def get_product_group(product_id: int) -> dict[str, Any] | None:
                 "main_product_id": member["main_product_id"],
                 "main_product_template_id": member["main_product_id"],
                 "current_stock": float(member["current_stock"]),
+                "usable_qty": float(member.get("usable_qty") or 0.0),
+                "cut_piece_qty": float(member.get("cut_piece_qty") or 0.0),
+                "forecasted_stock": float(member.get("forecasted_stock") or 0.0),
+                "incoming_qty": float(member.get("incoming_qty") or 0.0),
+                "outgoing_qty": float(member.get("outgoing_qty") or 0.0),
             }
             for member in members
         ],

@@ -13,7 +13,7 @@ def calculate_mase_scale(
 ) -> Optional[float]:
     """
     Computes the in-sample naive error scaling factor for MASE using historical training data only.
-    
+
     1. If training length > season_length, attempts seasonal naive scale:
        mean(|y_t - y_{t-m}|) for t = m+1 .. T.
     2. If seasonal scale is not usable (or len <= season_length), falls back to lag-1 naive scale:
@@ -53,7 +53,7 @@ def calculate_metrics(
 ) -> dict[str, Optional[float]]:
     """
     Computes comprehensive evaluation metrics comparing actual vs predicted demand.
-    
+
     Metrics returned:
     - sample_count: number of evaluation points
     - mae: Mean Absolute Error

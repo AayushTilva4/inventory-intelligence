@@ -4,12 +4,12 @@ from app.db.repository import (
     get_recommendations,
     update_approval_status,
     create_draft_po_for_product,
+    get_all_draft_pos,
 )
 from app.api.schemas import (
     InventoryRecommendation,
     InventorySummary,
 )
-from app.db.repository import get_recommendations
 
 router = APIRouter(
     prefix="/api/inventory",
@@ -23,6 +23,11 @@ router = APIRouter(
 )
 def inventory_recommendations():
     return get_recommendations()
+
+
+@router.get("/draft-pos")
+def draft_purchase_orders():
+    return get_all_draft_pos()
 
 
 @router.get(
