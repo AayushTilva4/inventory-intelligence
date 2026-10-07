@@ -38,3 +38,28 @@ def get_poc_engine():
         f"postgresql+psycopg2://{user}:{password}"
         f"@{host}:{port}/{database}"
     )
+
+
+def get_odoo_engine():
+    """Returns a SQLAlchemy engine connected to the Odoo database. Strictly for READ-ONLY queries."""
+    host = os.getenv("ODOO_DB_HOST")
+    port = os.getenv("ODOO_DB_PORT")
+    database = os.getenv("ODOO_DB_NAME")
+    user = os.getenv("ODOO_DB_USER")
+    password = os.getenv("ODOO_DB_PASSWORD")
+
+    required = {
+        "ODOO_DB_HOST": host,
+        "ODOO_DB_PORT": port,
+        "ODOO_DB_NAME": database,
+        "ODOO_DB_USER": user,
+        "ODOO_DB_PASSWORD": password,
+    }
+
+    missing = [key for key, value in required.items() if not value]
+    if missing:
+        raise RuntimeError("Missing Odoo database configuration: " + ", ".join(missing))
+
+    return create_engine(
+        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+    )

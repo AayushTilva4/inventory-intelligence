@@ -10,15 +10,19 @@ import numpy as np
 def calculate_mase_scale(
     train_history: Optional[Sequence[float]],
     season_length: int = 12,
+    min_seasonal_history: int = 24,
 ) -> Optional[float]:
     """
     Computes the in-sample naive error scaling factor for MASE using historical training data only.
 
-    1. If training length > season_length, attempts seasonal naive scale:
+    1. If training length >= min_seasonal_history (default 24), attempts seasonal naive scale:
        mean(|y_t - y_{t-m}|) for t = m+1 .. T.
-    2. If seasonal scale is not usable (or len <= season_length), falls back to lag-1 naive scale:
+       This ensures at least (min_seasonal_history - season_length) differences are available
+       (e.g., at least 12 differences for a 24-month series). Never uses future observations.
+    2. If seasonal scale is not usable (len < min_seasonal_history, or s_scale == 0),
+       falls back to stable lag-1 naive scale:
        mean(|y_t - y_{t-1}|) for t = 2 .. T.
-    3. If all differences are zero (e.g., constant series or zero-demand) or insufficient history,
+    3. If all differences are zero (e.g., constant series or zero-demand) or insufficient history (len <= 1),
        returns None indicating undefined scaling factor.
     """
     if train_history is None or len(train_history) <= 1:
@@ -27,8 +31,8 @@ def calculate_mase_scale(
     train_arr = np.asarray(train_history, dtype=float)
     scale = None
 
-    # 1. Attempt seasonal lag-12 naive scale
-    if len(train_arr) > season_length:
+    # 1. Attempt seasonal lag-12 naive scale only if sufficient history (>= min_seasonal_history)
+    if len(train_arr) >= min_seasonal_history and season_length > 0 and len(train_arr) > season_length:
         seasonal_diff = np.abs(train_arr[season_length:] - train_arr[:-season_length])
         s_scale = float(np.mean(seasonal_diff))
         if s_scale > 0:
@@ -50,6 +54,7 @@ def calculate_metrics(
     train_history: Optional[Sequence[float]] = None,
     scaled_errors: Optional[Sequence[Optional[float]]] = None,
     season_length: int = 12,
+    min_seasonal_history: int = 24,
 ) -> dict[str, Optional[float]]:
     """
     Computes comprehensive evaluation metrics comparing actual vs predicted demand.
@@ -113,18 +118,33 @@ def calculate_metrics(
         if len(valid_scaled) > 0:
             mase_val = float(np.mean(valid_scaled))
     elif train_history is not None:
-        scale = calculate_mase_scale(train_history, season_length=season_length)
+        scale = calculate_mase_scale(
+            train_history,
+            season_length=season_length,
+            min_seasonal_history=min_seasonal_history,
+        )
         if scale is not None and scale > 0:
             mase_val = float(mae_val / scale)
 
     # 5. Forecast Bias: mean(predicted - actual)
     bias_val = float(np.mean(diff))
 
-    # 6. Under-forecast rate: predicted < actual
-    under_rate = float(np.mean(predicted_arr < actual_arr))
+    # 6. Under-forecast & Over-forecast rates and amounts (Task 3)
+    under_mask = predicted_arr < actual_arr
+    over_mask = predicted_arr > actual_arr
+    under_rate = float(np.mean(under_mask))
+    over_rate = float(np.mean(over_mask))
 
-    # 7. Over-forecast rate: predicted > actual
-    over_rate = float(np.mean(predicted_arr > actual_arr))
+    under_diffs = actual_arr[under_mask] - predicted_arr[under_mask]
+    over_diffs = predicted_arr[over_mask] - actual_arr[over_mask]
+    mean_under_amount = float(np.mean(under_diffs)) if len(under_diffs) > 0 else 0.0
+    mean_over_amount = float(np.mean(over_diffs)) if len(over_diffs) > 0 else 0.0
+
+    # Asymmetric Business Losses (Task 3): under:over ratios
+    loss_1_1 = calculate_asymmetric_business_loss(actual_arr, predicted_arr, 1.0, 1.0)
+    loss_1_5_1 = calculate_asymmetric_business_loss(actual_arr, predicted_arr, 1.5, 1.0)
+    loss_2_1 = calculate_asymmetric_business_loss(actual_arr, predicted_arr, 2.0, 1.0)
+    loss_3_1 = calculate_asymmetric_business_loss(actual_arr, predicted_arr, 3.0, 1.0)
 
     return {
         "sample_count": n,
@@ -135,5 +155,38 @@ def calculate_metrics(
         "bias": round(bias_val, 4),
         "under_forecast_rate": round(under_rate, 4),
         "over_forecast_rate": round(over_rate, 4),
+        # Business-oriented error diagnostics (Task 3)
+        "bias_units": round(bias_val, 4),
+        "absolute_bias_units": round(abs(bias_val), 4),
+        "underforecast_rate": round(under_rate, 4),
+        "overforecast_rate": round(over_rate, 4),
+        "mean_underforecast_amount": round(mean_under_amount, 4),
+        "mean_overforecast_amount": round(mean_over_amount, 4),
+        "business_loss_1_1": round(loss_1_1, 4),
+        "business_loss_1_5_1": round(loss_1_5_1, 4),
+        "business_loss_2_1": round(loss_2_1, 4),
+        "business_loss_3_1": round(loss_3_1, 4),
     }
+
+
+def calculate_asymmetric_business_loss(
+    actual: Sequence[float],
+    predicted: Sequence[float],
+    underweight: float = 1.0,
+    overweight: float = 1.0,
+) -> float:
+    """
+    Computes asymmetric business loss:
+      (1 / N) * sum(underweight * max(0, actual - predicted) + overweight * max(0, predicted - actual))
+    Underforecast (stockout risk) penalized by underweight.
+    Overforecast (holding/excess stock risk) penalized by overweight.
+    """
+    act_arr = np.asarray(actual, dtype=float)
+    pred_arr = np.asarray(predicted, dtype=float)
+    if len(act_arr) == 0:
+        return 0.0
+
+    under_err = np.maximum(0.0, act_arr - pred_arr)
+    over_err = np.maximum(0.0, pred_arr - act_arr)
+    return float(np.mean(underweight * under_err + overweight * over_err))
 

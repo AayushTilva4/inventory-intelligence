@@ -6,6 +6,9 @@ from app.api.ai import router as ai_router
 from app.api.auth import router as auth_router
 from app.api.products import router as products_router
 from app.api.main_products import router as main_products_router
+from app.api.shadow import router as shadow_router
+from app.api.approvals import router as approvals_router
+from app.api.procurement import router as procurement_router
 
 app = FastAPI(
     title="Inventory Intelligence POC",
@@ -17,6 +20,9 @@ app.include_router(ai_router)
 app.include_router(auth_router)
 app.include_router(products_router)
 app.include_router(main_products_router)
+app.include_router(shadow_router)
+app.include_router(approvals_router)
+app.include_router(procurement_router)
 
 app.add_middleware(
     CORSMiddleware,

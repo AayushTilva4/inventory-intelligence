@@ -1,0 +1,15 @@
+product_id,product_name,main_product_id,group_size,raw_purchase_need,absorbed_quantity,post_absorption_ai_buy,group_stock,group_target,substitutability,requires_planner_review
+766,324-19,7347,5,8.15,8.15,0.0,374.2,51.15,3_possibly_related_not_safely_substitutable,True
+8022,V5-35,10179,3,0.48,0.48,0.0,64.5,0.48,3_possibly_related_not_safely_substitutable,True
+8100,9351-1,564,5,0.25,0.25,0.0,168.0,7.15,3_possibly_related_not_safely_substitutable,True
+8101,9305-2,565,6,6.32,6.32,0.0,397.5,6.32,3_possibly_related_not_safely_substitutable,True
+8491,360-19,8491,2,1.3,1.3,0.0,123.9,3.3,1_clearly_interchangeable_self_main,False
+10550,X3-04,7336,4,3.25,3.25,0.0,590.2,8.25,3_possibly_related_not_safely_substitutable,True
+10569,X3-23,9135,2,13.62,13.62,0.0,341.25,13.62,3_possibly_related_not_safely_substitutable,True
+10699,393-20,17895,2,57.53,57.53,0.0,587.1999999999999,96.93,3_possibly_related_not_safely_substitutable,True
+11442,402-04,7501,6,0.41,0.41,0.0,136.7,0.41,3_possibly_related_not_safely_substitutable,True
+11460,402-22,11451,3,0.98,0.98,0.0,767.0,0.98,1_clearly_interchangeable_self_main,False
+13331,401-51,13322,2,0.35,0.35,0.0,33.8,0.85,1_clearly_interchangeable_self_main,False
+15399,SE1-07,5661,2,18.97,18.97,0.0,178.39999999999998,26.67,3_possibly_related_not_safely_substitutable,True
+19553,442-20,20130,2,7.57,7.57,0.0,200.0,7.57,3_possibly_related_not_safely_substitutable,True
+19558,442-25,20135,3,78.37,78.37,0.0,261.25,85.12,3_possibly_related_not_safely_substitutable,True

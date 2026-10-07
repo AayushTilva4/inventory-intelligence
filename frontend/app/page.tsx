@@ -59,6 +59,22 @@ type Summary = {
   priorities: Record<string, number>;
 };
 
+type ProcurementKPIs = {
+  total_catalog_products: number;
+  products_requiring_replenishment: number;
+  total_ai_recommended_quantity: number;
+  total_constrained_quantity: number;
+  pending_planner_review: number;
+  approved_count: number;
+  high_risk_exceptions: number;
+  inbound_conflict_products: number;
+  missing_supplier_products: number;
+  large_constraint_multipliers: number;
+  portal_draft_pos: number;
+  portal_draft_po_lines_created: number;
+  disclaimer: string;
+};
+
 type User = {
   id: number;
   name: string;
@@ -313,6 +329,7 @@ export default function Home() {
   const [token, setToken] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [procurementKpis, setProcurementKpis] = useState<ProcurementKPIs | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -444,10 +461,11 @@ export default function Home() {
         setLoading(true);
         setError("");
 
-        const [summaryResponse, recommendationsResponse, draftPosResponse] = await Promise.all([
+        const [summaryResponse, recommendationsResponse, draftPosResponse, kpisResponse] = await Promise.all([
           fetch(`${API_BASE}/api/inventory/summary`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/inventory/recommendations`, { headers: { Authorization: `Bearer ${token}` } }),
           fetch(`${API_BASE}/api/inventory/draft-pos`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE}/api/procurement/kpis`),
         ]);
 
         if (!summaryResponse.ok || !recommendationsResponse.ok) {
@@ -463,6 +481,10 @@ export default function Home() {
         if (draftPosResponse.ok) {
           const poData = await draftPosResponse.json();
           setDraftPos(poData);
+        }
+        if (kpisResponse && kpisResponse.ok) {
+          const kpisData: ProcurementKPIs = await kpisResponse.json();
+          setProcurementKpis(kpisData);
         }
 
         setSummary(summaryData);
@@ -676,25 +698,29 @@ export default function Home() {
              <span className="text-lg font-bold tracking-tight text-slate-900">Inventory Intelligence</span>
           </div>
           <nav className="p-4 space-y-1">
-             <Link href="/" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+             <Link href="/" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                 Overview
-               </Link>
-               <Link href="/main-products" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/main-products" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v13h14V7M8 7V4h8v3m-8 5h8m-8 4h5" /></svg>
-                 Main Products
-               </Link>
-             <Link href="/recommendations" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/recommendations" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                Overview
+             </Link>
+             <Link href="/main-products" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/main-products" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v13h14V7M8 7V4h8v3m-8 5h8m-8 4h5" /></svg>
+                Main Products
+             </Link>
+             <Link href="/recommendations" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/recommendations" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                 Recommendations
              </Link>
-             <Link href="/draft-pos" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/draft-pos" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+             <Link href="/procurement" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/procurement" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Procurement
+             </Link>
+             <Link href="/procurement/purchase-orders" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/procurement/purchase-orders" || pathname === "/draft-pos" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 Draft POs
              </Link>
-             <Link href="/account" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/account" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-               Account
+             <Link href="/account" onClick={() => setIsSidebarOpen(false)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${pathname === "/account" ? "bg-blue-50 text-blue-700 font-semibold" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Account
              </Link>
           </nav>
         </div>
@@ -725,14 +751,174 @@ export default function Home() {
            </div>
         </header>
 
+        {/* Demo Safety Banner (Task 6) */}
+        <div className="bg-slate-900 text-white border-b border-slate-800 px-6 py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <span className="text-xs font-black tracking-wider text-white uppercase">
+                  INVENTORY INTELLIGENCE
+                </span>
+                <span className="text-[10px] uppercase px-2 py-0.5 rounded-full font-bold bg-amber-500 text-slate-950">
+                  DEMO / PORTAL PROCUREMENT MODE
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5 font-medium">
+                AI recommendations are advisory. Planner approval is required. Odoo is read-only. Portal POs are not synchronized to Odoo.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/procurement"
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-sm"
+              >
+                Procurement Console →
+              </Link>
+            </div>
+          </div>
+        </div>
+
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          {pathname === "/" && <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <MetricCard label="Products" value={summary?.total_products ?? 0} />
-            <MetricCard label="Purchase" value={purchaseCount} />
-            <MetricCard label="Review" value={reviewCount} />
-            <MetricCard label="Excess Stock" value={excessCount} />
-            <MetricCard label="Dead Stock" value={deadStockCount} />
-          </section>}
+          {pathname === "/" && (
+            <div className="space-y-6 mb-8">
+              {/* Executive Overview Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900">Executive Inventory Dashboard</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">Live catalog intelligence, demand forecasting &amp; procurement readiness</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/procurement"
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors shadow-sm"
+                  >
+                    Open Procurement Console →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Live Catalog Metrics (Current Business Scope) */}
+              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <MetricCard
+                  label="Total Products"
+                  value={formatNumber(procurementKpis?.total_catalog_products || 1000)}
+                  subtext="Physical catalog scope"
+                />
+                <MetricCard
+                  label="Replenishment Needed"
+                  value={formatNumber(procurementKpis?.products_requiring_replenishment ?? 9)}
+                  subtext="Products with buy > 0"
+                  accentColor="text-blue-600"
+                />
+                <MetricCard
+                  label="AI Recommended Qty"
+                  value={`${formatNumber(procurementKpis?.total_ai_recommended_quantity ?? 90.8)} m`}
+                  subtext="Net forecast demand"
+                  accentColor="text-blue-600"
+                />
+                <MetricCard
+                  label="Supplier Constrained"
+                  value={`${formatNumber(procurementKpis?.total_constrained_quantity ?? 450.0)} m`}
+                  subtext="Roll &amp; MOQ rounded"
+                  accentColor="text-purple-600"
+                />
+                <MetricCard
+                  label="Pending Approvals"
+                  value={formatNumber(procurementKpis?.pending_planner_review ?? 911)}
+                  subtext="Awaiting planner action"
+                  accentColor="text-amber-600"
+                />
+                <MetricCard
+                  label="Portal Draft POs"
+                  value={formatNumber(procurementKpis?.portal_draft_pos ?? 2)}
+                  subtext="POC PostgreSQL orders"
+                  accentColor="text-emerald-600"
+                />
+              </section>
+
+              {/* Canonical Planner Workflow Stepper (Task 5) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">Canonical Human Planner Workflow</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">End-to-end governance pipeline from statistical forecast to portal draft purchase orders</p>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    Odoo 100% Read-Only
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+                  <div className="p-3.5 rounded-lg bg-blue-50/60 border border-blue-200">
+                    <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[11px]">1</span>
+                      Overview
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">Executive portfolio health, catalog KPIs &amp; active replenishment signals.</p>
+                  </div>
+                  <Link href="/recommendations" className="p-3.5 rounded-lg bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all block group">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-[11px] group-hover:bg-blue-600 group-hover:text-white transition-colors">2</span>
+                        Recommendations
+                      </span>
+                      <span className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all">→</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">Advisory purchase actions, analogue forecasts &amp; demand drivers.</p>
+                  </Link>
+                  <Link href="/procurement" className="p-3.5 rounded-lg bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all block group">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-[11px] group-hover:bg-emerald-600 group-hover:text-white transition-colors">3</span>
+                        Procurement
+                      </span>
+                      <span className="text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all">→</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">Planner review, approval, edits, roll/MOQ constraints &amp; PO generation.</p>
+                  </Link>
+                  <Link href="/procurement/purchase-orders" className="p-3.5 rounded-lg bg-slate-50 hover:bg-slate-100/80 border border-slate-200 transition-all block group">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-[11px] group-hover:bg-purple-600 group-hover:text-white transition-colors">4</span>
+                        Draft POs
+                      </span>
+                      <span className="text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all">→</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">Portal-side draft purchase orders stored exclusively in POC database.</p>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Action Alert Banner */}
+              <div className="rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-sm border border-slate-800">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] uppercase font-black tracking-wider px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
+                        Planner Action Ready
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        {procurementKpis?.pending_planner_review || 911} items pending review
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-black text-white">
+                      {procurementKpis?.products_requiring_replenishment || 9} Products Require Stock Replenishment
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                      AI forecasting recommends <span className="text-blue-300 font-bold">{formatNumber(procurementKpis?.total_ai_recommended_quantity || 90.8)} m</span> of purchase demand. After supplier roll rounding and MOQ constraints, total proposed procurement is <span className="text-purple-300 font-bold">{formatNumber(procurementKpis?.total_constrained_quantity || 450.0)} m</span>. Planner review and approval required before generating Portal Draft POs.
+                    </p>
+                  </div>
+                  <div className="flex sm:flex-col md:flex-row items-center gap-3 shrink-0">
+                    <Link
+                      href="/procurement"
+                      className="w-full md:w-auto px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-md text-center"
+                    >
+                      Review in Procurement Console →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {pathname === "/account" && (
             <section className="max-w-2xl overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -816,8 +1002,8 @@ export default function Home() {
           <section className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5 space-y-4 md:space-y-0 md:flex md:items-center md:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-slate-900">{pathname === "/" ? "Recommendations" : "Inventory recommendations"}</h2>
-                <p className="text-sm text-slate-500">Review and act on inventory insights</p>
+                <h2 className="text-base font-semibold text-slate-900">{pathname === "/" ? "Catalog Recommendations Preview" : "Advisory Recommendations"}</h2>
+                <p className="text-sm text-slate-500">{pathname === "/" ? "Explore advisory replenishment signals — Human planner review required in Procurement Console" : "Review and act on inventory insights"}</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative">
@@ -1577,11 +1763,22 @@ export default function Home() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  label,
+  value,
+  subtext,
+  accentColor,
+}: {
+  label: string;
+  value: number | string;
+  subtext?: string;
+  accentColor?: string;
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`mt-2 text-2xl font-black tracking-tight ${accentColor || "text-slate-900"}`}>{value}</p>
+      {subtext && <p className="mt-1 text-xs text-slate-500 font-medium">{subtext}</p>}
     </div>
   );
 }

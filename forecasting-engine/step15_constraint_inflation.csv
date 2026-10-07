@@ -1,0 +1,69 @@
+product_id,product_name,vendor_name,demand_pattern,forecast_1m,forecast_h3,target_stock,current_stock,ai_purchase_quantity,standard_roll_length,moq,constrained_quantity,constraint_multiplier,multiplier_bracket,constraint_source,reasons,inbound_pending_qty
+12754,396-23,GM Fabrics,intermittent,2.0,0.5,0.6,0.5,0.1,50.0,50.0,50.0,500.0,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,64.3
+9273,386-12,Weiwei,intermittent,6.0,1.5,1.65,1.5,0.15,50.0,50.0,50.0,333.33,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+491,335-01,Weiwei,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9631,Leviotto Men's Sneaker BLACK (LVTM11005),Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17266,Leviotto Men's Sneaker LVTM11025 BLACK,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20184,Eau de parfum Oud Al Saqr 100ml Perfume,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20176,Leviotto Men's Sneaker LVM21240001 BLACK,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9634,Leviotto Women's Sneaker (LVTW21002) PINK,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9624,Leviotto Women's Sneaker (LVTW21001) BEIGE,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+14702,Leviotto Men's Sneaker (LVTM11025) Black,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20168,Leviotto Women's Sneaker LVTW02242001 LILAC,Dazzle Shoes And Handbag Leather products,intermittent,0.5,0.12,0.22,0.0,0.22,50.0,50.0,50.0,227.27,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+5383,DE-V1-45,Lisa,intermittent,8.25,2.06,2.27,0.0,0.27,50.0,50.0,50.0,185.19,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17275,Oteeto OT5 Bluetooth Earbuds With Hifi Sound Quality,Dazzle Shoes And Handbag Leather products,low_demand,1.0,0.25,0.35,0.0,0.35,50.0,50.0,50.0,142.86,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17248,Leviotto Men's Sneaker LVTM11030  BLACK,Dazzle Shoes And Handbag Leather products,intermittent,1.0,0.25,0.35,0.0,0.35,50.0,50.0,50.0,142.86,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+12345,CAT-INSIGNIA (LJ16021127),Rivoli Group LLC,intermittent,0.5,0.5,0.6,0.0,0.6,50.0,50.0,50.0,83.33,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17403,419-34,Sam Haining,stable/normal,21.0,22.25,24.48,23.6,0.88,50.0,50.0,50.0,56.82,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,384.8
+17488,Seveston Couple Watch SV-10057,Dazzle Shoes And Handbag Leather products,intermittent,1.0,1.0,1.1,0.0,1.1,50.0,50.0,50.0,45.45,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9125,385-08,Weiwei,intermittent,4.0,1.0,1.1,0.0,1.1,50.0,50.0,50.0,45.45,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+503,335-13,Weiwei,intermittent,4.25,1.06,1.17,0.0,1.17,50.0,50.0,50.0,42.74,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20185,Femme Sensual Eau de parfum 100ML ,Dazzle Shoes And Handbag Leather products,intermittent,2.0,2.0,2.2,1.0,1.2,50.0,50.0,50.0,41.67,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+6026,364-33,Michel,intermittent,8.5,2.12,2.33,1.0,1.33,50.0,50.0,50.0,37.59,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9284,386-23,Weiwei,intermittent,5.25,1.31,1.44,0.0,1.44,50.0,50.0,50.0,34.72,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,199.6
+13352,401-72,Manuel Revert,intermittent,1.75,1.31,1.44,0.0,1.44,50.0,50.0,50.0,34.72,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,231.3
+6709,380-22,Kelly,intermittent,2.25,2.06,2.27,0.5,1.77,50.0,50.0,50.0,28.25,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,272.2
+8508,1 Gram Gold Coin,Malabar Gold & Diamonds,falling,3.0,2.75,3.03,1.0,2.03,50.0,50.0,50.0,24.63,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,50.0
+17034,412-17,Sam Haining,intermittent,3.5,2.62,2.88,0.0,2.88,50.0,50.0,50.0,17.36,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20187,JACK POLO CHAMPION Eau de parfum 100ML,Dazzle Shoes And Handbag Leather products,intermittent,3.5,3.62,3.98,1.0,2.98,50.0,50.0,50.0,16.78,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17413,419-44,Sam Haining,fast_moving,5.75,4.31,4.74,1.0,3.74,50.0,50.0,50.0,13.37,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,235.0
+12761,396-30,GM Fabrics,rising,8.5,4.38,4.82,1.0,3.82,50.0,50.0,50.0,13.09,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,178.0
+20768,AIROLA-37,Manuel Revert,intermittent,3.5,3.5,3.85,0.0,3.85,50.0,50.0,50.0,12.99,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20767,AIROLA-32,Manuel Revert,intermittent,3.5,3.5,3.85,0.0,3.85,50.0,50.0,50.0,12.99,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20687,CASERTA-99,Manuel Revert,intermittent,3.75,3.75,4.13,0.0,4.13,50.0,50.0,50.0,12.11,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+3254,810-04 2417,Tex silk Outdoor Fabrics (Spain),intermittent,3.25,4.06,4.47,0.0,4.47,50.0,50.0,50.0,11.19,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,200.0
+6622,379-05,Tesro Furnishing Fabrics LLC,falling,30.25,31.44,34.58,29.3,5.28,50.0,50.0,50.0,9.47,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+9611,Dazzle Shoes Gift Card -150 AED,Dazzle Shoes And Handbag Leather products,rising,7.5,5.62,6.18,0.0,6.18,50.0,50.0,50.0,8.09,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20775,BONE-27,Manuel Revert,intermittent,5.75,5.75,6.32,0.0,6.32,50.0,50.0,50.0,7.91,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20773,BONE-01,Manuel Revert,intermittent,5.75,5.75,6.32,0.0,6.32,50.0,50.0,50.0,7.91,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20774,BONE-12,Manuel Revert,intermittent,5.75,5.75,6.32,0.0,6.32,50.0,50.0,50.0,7.91,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20776,BONE-28,Manuel Revert,intermittent,5.75,5.75,6.32,0.0,6.32,50.0,50.0,50.0,7.91,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20771,BONE-13,Manuel Revert,intermittent,5.75,5.75,6.32,0.0,6.32,50.0,50.0,50.0,7.91,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+14410,394-25,Weiwei,fast_moving,10.5,8.62,9.48,3.0,6.48,50.0,50.0,50.0,7.72,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20772,BONE-19,Manuel Revert,intermittent,6.25,6.25,6.87,0.0,6.87,50.0,50.0,50.0,7.28,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+17038,412-21,Sam Haining,fast_moving,28.75,7.19,7.91,0.0,7.91,50.0,50.0,50.0,6.32,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,442.2
+3270,810-12 2657,Tex silk Outdoor Fabrics (Spain),intermittent,12.0,12.75,14.02,5.0,9.02,50.0,50.0,50.0,5.54,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,200.0
+6553,371-41,Sam Haining,intermittent,9.0,9.0,9.9,0.0,9.9,50.0,50.0,50.0,5.05,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20530,LLUC-10,Manuel Revert,intermittent,13.5,10.12,11.13,0.0,11.13,50.0,50.0,50.0,4.49,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,140.0
+3243,810-E S-01,Tex silk Outdoor Fabrics (Spain),fast_moving,15.75,13.69,15.06,3.0,12.06,50.0,50.0,50.0,4.15,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,550.0
+9610,Dazzle Shoes Gift Card -75 AED,Dazzle Shoes And Handbag Leather products,rising,11.0,11.5,12.65,0.0,12.65,50.0,50.0,50.0,3.95,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+16697,413-11,Zenda-Bob (Hanghzou Yingboer TR),fast_moving,262.05,263.04,289.34,0.0,289.34,50.0,1000.0,1000.0,3.46,>3x,ODOO_VENDOR_DATA,rounded_to_roll_length_multiple_50m; adjusted_to_supplier_moq_1000m,1054.0
+17021,412-03,Sam Haining,rising,16.0,13.5,14.85,0.0,14.85,50.0,50.0,50.0,3.37,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,219.8
+5050,348-23,Weiwei,intermittent,25.25,23.69,26.06,11.0,15.06,50.0,50.0,50.0,3.32,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+20192,437-42,MISSING_VENDOR,intermittent,24.05,24.05,26.45,10.4,16.05,50.0,50.0,50.0,3.12,>3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+21094,L2094-3 - LW,Michel,intermittent,19.18,19.18,21.1,3.0,18.1,50.0,50.0,50.0,2.76,2-3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+12569,398-02,Lisa,stable/normal,45.25,40.56,44.62,21.6,23.02,50.0,50.0,50.0,2.17,2-3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,130.1
+17121,416-11,Lucas,intermittent,19.5,24.38,26.82,2.5,24.32,50.0,50.0,50.0,2.06,2-3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,225.4
+16520,411-03,Sam Haining,intermittent,24.75,30.94,34.03,9.8,24.23,50.0,50.0,50.0,2.06,2-3x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,515.1
+16521,411-04,Sam Haining,fast_moving,48.25,43.69,48.06,23.0,25.06,50.0,50.0,50.0,2.0,1.5-2x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,925.1
+20193,437-46,Sam Haining,intermittent,54.25,55.69,61.26,34.8,26.46,50.0,50.0,50.0,1.89,1.5-2x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,280.2
+14397,394-12,Weiwei,fast_moving,65.5,67.5,74.25,45.5,28.75,50.0,50.0,50.0,1.74,1.5-2x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+14394,394-09,Weiwei,fast_moving,92.25,86.06,94.67,31.45,63.22,50.0,50.0,100.0,1.58,1.5-2x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+6358,Lienzo 09 - Nautic,Manuel Revert,intermittent,53.5,53.5,58.85,21.5,37.35,50.0,50.0,50.0,1.34,1.25-1.5x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+21865,Thornby Champagne - AW,Ashley Wilde,intermittent,37.0,37.0,40.7,0.0,40.7,50.0,50.0,50.0,1.23,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0
+1476,Offwhite Black Out,Bonus Black Out,fast_moving,110.0,82.5,90.75,0.0,90.75,50.0,50.0,100.0,1.1,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,1375.0
+10692,393-13,Sam Haining,fast_moving,74.25,73.44,80.78,34.5,46.28,50.0,50.0,50.0,1.08,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,489.8
+10694,393-15,Sam Haining,fast_moving,91.75,104.56,115.02,67.5,47.52,50.0,50.0,50.0,1.05,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,809.6
+7341,384-09,Sam Haining,fast_moving,426.5,523.88,576.27,72.9,491.67,50.0,50.0,500.0,1.02,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,165.9
+3241,810-D S-11,Tex silk Outdoor Fabrics (Spain),fast_moving,49.5,45.0,49.5,0.0,49.5,50.0,50.0,50.0,1.01,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,400.0
+6626,379-09,Sam Haining,fast_moving,143.12,171.27,188.4,88.6,99.8,50.0,50.0,100.0,1.0,<=1.25x,DEFAULT_ASSUMPTION,rounded_to_roll_length_multiple_50m,0.0

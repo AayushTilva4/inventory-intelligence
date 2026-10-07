@@ -45,6 +45,11 @@ def parse_args():
         help="Comma-separated product IDs to evaluate (e.g. 16697,16905,604).",
     )
     group.add_argument(
+        "--product-file",
+        type=str,
+        help="Path to JSON file containing product IDs to evaluate.",
+    )
+    group.add_argument(
         "--top-n",
         type=int,
         help="Benchmark on top N active products by sales volume (e.g. 20, 50).",
@@ -101,6 +106,12 @@ def main():
     if args.product_ids:
         mode = "ids"
         pids = [int(p.strip()) for p in args.product_ids.split(",") if p.strip()]
+        top_n = None
+    elif args.product_file:
+        mode = "ids"
+        import json
+        with open(args.product_file, "r") as f:
+            pids = json.load(f)
         top_n = None
     elif args.top_n:
         mode = "top_n"

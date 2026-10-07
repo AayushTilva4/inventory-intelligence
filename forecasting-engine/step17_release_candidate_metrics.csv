@@ -1,0 +1,17 @@
+metric_category,metric_name,metric_value,status
+Catalog Coverage,total_catalog_products,12331.0,VERIFIED
+Catalog Coverage,active_demand_products,3558.0,VERIFIED
+Catalog Coverage,dead_stock_products,3983.0,VERIFIED
+Catalog Coverage,unresolved_or_failed_products,0.0,VERIFIED
+Mathematical Invariants,nan_values,0.0,PASS
+Mathematical Invariants,infinity_values,0.0,PASS
+Mathematical Invariants,negative_values,0.0,PASS
+Mathematical Invariants,dead_stock_hard_clamped_zero,3983.0,PASS
+Procurement Volumes,products_requiring_replenishment,82.0,VERIFIED
+Procurement Volumes,total_ai_recommended_meterage,1849.3,VERIFIED
+Procurement Volumes,total_constrained_meterage,5800.0,VERIFIED
+System Performance,full_catalog_runtime_seconds,5.39,OPTIMAL
+System Performance,average_product_latency_ms,0.64,OPTIMAL
+Governance & Security,odoo_write_count,0.0,PASS
+Governance & Security,odoo_rfq_count,0.0,PASS
+Governance & Security,odoo_po_count,0.0,PASS

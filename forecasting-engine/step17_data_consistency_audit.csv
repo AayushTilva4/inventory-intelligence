@@ -1,0 +1,4 @@
+entity_check,count,status,details
+orphaned_audit_trail_events,0,PASS,All audit trail records link to existing planner approvals
+orphaned_portal_po_lines,0,PASS,All PO lines link to valid portal purchase order headers
+po_header_vs_line_quantity_match,0,PASS,Header total_quantity matches sum of line item quantities

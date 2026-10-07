@@ -7,6 +7,7 @@ and stores comprehensive results in the POC PostgreSQL database.
 
 import sys
 import time
+import json
 import uuid
 import logging
 from pathlib import Path
@@ -275,8 +276,23 @@ class BenchmarkRunner:
 
                 # Generate forecasts for all benchmark models
                 for model_name in self.models:
+                    router_telemetry = None
                     try:
-                        preds = forecast_multistep(model_name, train_series, max_horizon=self.max_horizon)
+                        if model_name.startswith("pattern_router"):
+                            from app.forecasting.benchmark_v2.router import forecast_pattern_router
+                            obj_map = {
+                                "pattern_router": "variant_a",
+                                "pattern_router_b": "variant_b",
+                                "pattern_router_c": "variant_c",
+                                "pattern_router_d": "variant_d",
+                                "pattern_router_e": "variant_e",
+                            }
+                            obj = obj_map.get(model_name, "variant_a")
+                            preds, router_telemetry = forecast_pattern_router(
+                                train_series, max_horizon=self.max_horizon, objective=obj
+                            )
+                        else:
+                            preds = forecast_multistep(model_name, train_series, max_horizon=self.max_horizon)
                     except Exception as exc:
                         failures.append({
                             "product_id": pid,
@@ -315,6 +331,15 @@ class BenchmarkRunner:
                             "sq_error": round(err ** 2, 2),
                             "mase_scale": round(mase_scale, 4) if mase_scale is not None else None,
                             "scaled_error": round(scaled_err, 4) if scaled_err is not None else None,
+                            "router_pattern": router_telemetry.get("pattern") if router_telemetry else None,
+                            "router_candidate_pool": ",".join(router_telemetry.get("candidate_pool", [])) if router_telemetry else None,
+                            "router_selected_model": router_telemetry.get("selected_model") if router_telemetry else None,
+                            "router_internal_score": router_telemetry.get("internal_score") if router_telemetry else None,
+                            "router_val_horizon": router_telemetry.get("val_horizon") if router_telemetry else None,
+                            "router_objective": router_telemetry.get("objective") if router_telemetry else None,
+                            "router_candidate_scores": json.dumps(router_telemetry.get("candidate_scores")) if router_telemetry and router_telemetry.get("candidate_scores") else None,
+                            "router_intermittent_diagnostics": json.dumps(router_telemetry.get("intermittent_diagnostics")) if router_telemetry and router_telemetry.get("intermittent_diagnostics") else None,
+                            "router_fast_moving_diagnostics": json.dumps(router_telemetry.get("fast_moving_diagnostics")) if router_telemetry and router_telemetry.get("fast_moving_diagnostics") else None,
                         })
 
         forecasting_seconds = time.perf_counter() - t_forecast_start
@@ -676,5 +701,38 @@ class BenchmarkRunner:
         )
         pattern_diff_count = int((forecast_df["as_of_origin_pattern"] != forecast_df["current_pattern"]).sum())
         print(f"  Forecast rows where origin pattern differs from current: {pattern_diff_count:,} / {total_evals:,}")
+
+        # 6. Pattern-Aware Forecasting Router Analytics (if evaluated)
+        if "pattern_router" in forecast_df["model"].values:
+            print("\n[6] PATTERN-AWARE FORECASTING ROUTER TELEMETRY & SELECTION ANALYTICS:")
+            router_sub = forecast_df[forecast_df["model"] == "pattern_router"].drop_duplicates(
+                subset=["product_id", "origin_date"]
+            )
+            total_sels = len(router_sub)
+            print(f"  Total Origin Selection Events: {total_sels:,}")
+
+            if "router_selected_model" in router_sub.columns and total_sels > 0:
+                print("\n  Overall Candidate Model Selection Frequency:")
+                counts = router_sub["router_selected_model"].value_counts()
+                pcts = (counts / total_sels * 100).map("{:.1f}%".format)
+                freq_df = pd.DataFrame({"Selections": counts, "Percentage": pcts})
+                print(freq_df.to_string())
+
+                print("\n  Model Selection Frequency by As-Of-Origin Demand Pattern:")
+                ct = pd.crosstab(
+                    router_sub["as_of_origin_pattern"],
+                    router_sub["router_selected_model"],
+                    margins=True,
+                    margins_name="Total",
+                )
+                print(ct.to_string())
+
+            # Horizon 3 performance comparison
+            h3_df = metrics_df[(metrics_df["aggregation_level"] == "horizon") & (metrics_df["horizon"] == 3)]
+            if not h3_df.empty:
+                print("\n  Horizon 3 Specific Lead-Time Accuracy (Supplier Reorder Lead Time):")
+                h3_disp = h3_df[["model", "mae", "wape", "mase", "rmse", "bias"]].sort_values("wape")
+                print(h3_disp.to_string(index=False))
+
         print("\n" + "=" * 96 + "\n")
 

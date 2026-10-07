@@ -83,8 +83,27 @@ def init_benchmark_tables(engine: Engine | None = None) -> None:
     ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS current_pattern VARCHAR(50);
     ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS mase_scale NUMERIC(12, 4);
     ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS scaled_error NUMERIC(12, 4);
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_pattern VARCHAR(50);
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_candidate_pool TEXT;
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_selected_model VARCHAR(100);
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_internal_score NUMERIC(12, 4);
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_val_horizon INT;
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_objective VARCHAR(50);
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_candidate_scores TEXT;
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_intermittent_diagnostics TEXT;
+    ALTER TABLE benchmark_forecasts ADD COLUMN IF NOT EXISTS router_fast_moving_diagnostics TEXT;
     ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS macro_wape_product NUMERIC(12, 4);
     ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS macro_wape_horizon NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS bias_units NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS absolute_bias_units NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS underforecast_rate NUMERIC(6, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS overforecast_rate NUMERIC(6, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS mean_underforecast_amount NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS mean_overforecast_amount NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS business_loss_1_1 NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS business_loss_1_5_1 NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS business_loss_2_1 NUMERIC(12, 4);
+    ALTER TABLE benchmark_metrics ADD COLUMN IF NOT EXISTS business_loss_3_1 NUMERIC(12, 4);
 
     CREATE INDEX IF NOT EXISTS idx_bm_forecasts_run ON benchmark_forecasts(run_id, product_id, horizon);
     CREATE INDEX IF NOT EXISTS idx_bm_forecasts_model ON benchmark_forecasts(run_id, model, horizon);

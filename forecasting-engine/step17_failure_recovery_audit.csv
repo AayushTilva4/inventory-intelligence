@@ -1,0 +1,7 @@
+test_case,handled_gracefully,recovered,error_message,behavior
+corrupt_sales_series,True,True,,Sanitized inputs; produced safe forecast 2.5
+missing_supplier_master,True,True,,"Flagged exceptions: ['missing_supplier', 'constraint_multiplier_gt_3x']"
+missing_or_invalid_uom,True,True,,"Flagged in exceptions: ['default_moq_used', 'default_roll_length_used', 'constraint_multiplier_gt_3x']"
+negative_or_zero_constraint,True,True,,Safely returned raw quantity 25.0
+duplicate_po_request_idempotency,True,True,,Returned existing PO po_1791375160_po-step17-idemp-01 without creating duplicate lines
+malformed_negative_approval,True,True,Safety violation: Edited target and purchase quantities cannot be negative.,Blocked negative values with safety validation
