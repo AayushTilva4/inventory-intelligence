@@ -1,0 +1,45 @@
+main_product_template_id,main_product_name,demand_pattern,service_level,z_score,sigma_error_1m,fallback_used,forecasted_horizon_demand,safety_stock,target_stock,inventory_position,stock_gap,action,suggested_purchase_qty
+10699,393-29,fast_moving,0.8,0.84,128.98,False,143.43,215.14,358.57,567.4,0.0,hold,0
+4985,1104-39,intermittent,0.75,0.67,0.0,False,0.0,0.0,0.0,358.9,0.0,hold,0
+11440,1102-27,intermittent,0.75,0.67,16.2,False,28.48,21.85,50.34,32.5,17.84,review,18
+820,DE-V1-160,falling,0.75,0.67,101.32,False,2.0,10.0,12.0,416.3,0.0,excess_stock,0
+10692,393-22,fast_moving,0.8,0.84,111.0,False,402.44,186.84,589.28,512.8,76.48,review,77
+10693,393-23,falling,0.75,0.67,102.67,False,520.0,138.5,658.5,2239.6,0.0,excess_stock,0
+6909,373-37,intermittent,0.75,0.67,25.69,False,35.52,34.66,70.18,38.4,31.78,purchase,32
+6623,379-06,falling,0.75,0.67,399.63,False,750.0,539.09,1289.09,3228.3,0.0,excess_stock,0
+6032,18825,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,148.3,0.0,dead_stock,0
+10700,393-30,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,12.5,0.0,dead_stock,0
+9124,385-07,intermittent,0.75,0.67,55.37,False,12.0,18.0,30.0,20.0,10.0,purchase,10
+6907,377-14,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,222.9,0.0,dead_stock,0
+2200,502-04,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+854,202-18,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,155.8,0.0,dead_stock,0
+8502,360-30,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+1882,301-02,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,116.2,0.0,dead_stock,0
+2054,306-12,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,44.5,0.0,hold,0
+2850,801-03,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+14403,394-27,intermittent,0.75,0.67,82.83,False,400.72,111.73,512.45,286.4,226.05,purchase,227
+273,344-06,intermittent,0.75,0.67,5.02,False,12.49,6.77,19.26,622.8,0.0,excess_stock,0
+176,345-65,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,413.4,0.0,dead_stock,0
+15820,407-44,intermittent,0.75,0.67,1.93,False,1.79,2.61,4.4,65.6,0.0,excess_stock,0
+790,324-53,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,307.6,0.0,dead_stock,0
+576,1104-15,intermittent,0.75,0.67,0.0,False,0.0,0.0,0.0,174.3,0.0,hold,0
+4993,310-41,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,197.5,0.0,hold,0
+6373,Trazo 07 - Nautic,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,40.0,0.0,hold,0
+292,344-25,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,200.8,0.0,dead_stock,0
+5761,362-26,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,219.9,0.0,dead_stock,0
+1552,201-11 CC,falling,0.75,0.67,216.22,False,352.0,291.68,643.68,2097.5,0.0,excess_stock,0
+6107,366-19,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,358.3,0.0,hold,0
+6127,367-13,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,440.5,0.0,dead_stock,0
+5230,355-38,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,281.2,0.0,dead_stock,0
+4827,1706-05,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+4116,909-69,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,157.8,0.0,hold,0
+3762,906-16,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+6114,366-26,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,281.7,0.0,dead_stock,0
+1595,201-55,intermittent,0.75,0.67,11.89,False,9.11,13.67,22.78,694.0,0.0,excess_stock,0
+1268,Lisos 21,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,98.0,0.0,dead_stock,0
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,0.0,0.0,hold,0
+173,345-99,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,388.1,0.0,dead_stock,0
+10073,DE-V1-107,dead_stock,0.0,0.0,0.0,False,0.0,0.0,0.0,104.9,0.0,dead_stock,0
+15805,407-29,intermittent,0.75,0.67,0.0,False,0.0,0.0,0.0,83.05,0.0,hold,0
+161,347-43,cold_start,0.75,0.67,0.0,False,0.0,0.0,0.0,201.0,0.0,hold,0

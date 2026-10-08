@@ -1,0 +1,51 @@
+group_id,name,current_confidence,new_confidence,wape,mase,mae,rmse,bias,observation_count,underforecast_rate,overforecast_rate,classification_reason
+10699,393-29,normal,low,0.8052,0.3533,33.42,36.73,4.58,6,0.5,0.5,wape_over_50_pct_0.8052
+4985,1104-39,low,low,1.0,1.4641,13.33,32.66,-13.33,6,0.1667,0.0,wape_over_50_pct_1.0000
+11440,1102-27,low,low,1.1271,1.1003,15.4,23.81,-11.14,6,0.3333,0.1667,wape_over_50_pct_1.1271
+820,DE-V1-160,normal,low,1.881,0.1708,13.17,17.89,0.0,6,0.3333,0.6667,wape_over_50_pct_1.8810
+10692,393-22,low,low,1.2944,1.1716,109.59,130.02,25.75,6,0.1667,0.8333,wape_over_50_pct_1.2944
+10693,393-23,normal,low,0.693,0.2413,24.83,40.02,-18.5,6,0.3333,0.1667,wape_over_50_pct_0.6930
+6909,373-37,normal,low,0.7198,0.8268,10.92,21.65,10.92,6,0.0,0.3333,wape_over_50_pct_0.7198
+6623,379-06,normal,low,0.8844,0.087,31.25,67.29,-31.25,6,0.3333,0.0,wape_over_50_pct_0.8844
+6032,18825,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+10063,DE-V1-05,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+10700,393-30,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+9124,385-07,normal,low,1.25,0.0157,0.83,1.35,-0.5,6,0.3333,0.1667,wape_over_50_pct_1.2500
+6907,377-14,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+2200,502-04,cold_start_none,low,,,,,,0,,,insufficient_group_history
+854,202-18,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+8502,360-30,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+1882,301-02,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+2054,306-12,cold_start_none,low,,,,,,0,,,insufficient_group_history
+2850,801-03,cold_start_none,low,,,,,,0,,,insufficient_group_history
+14403,394-27,normal,low,0.9398,0.1409,6.5,9.87,-6.5,6,0.5,0.0,wape_over_50_pct_0.9398
+273,344-06,normal,low,1.1538,0.7078,2.5,4.54,-1.0,6,0.1667,0.3333,wape_over_50_pct_1.1538
+176,345-65,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+15820,407-44,normal,low,1.5686,0.4259,0.89,1.1,-0.13,6,0.3333,0.5,wape_over_50_pct_1.5686
+790,324-53,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+576,1104-15,normal,low,1.0,0.1196,0.5,1.22,-0.5,6,0.1667,0.0,wape_over_50_pct_1.0000
+4993,310-41,cold_start_none,low,,,,,,0,,,insufficient_group_history
+6373,Trazo 07 - Nautic,cold_start_none,low,,,,,,0,,,insufficient_group_history
+292,344-25,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+5761,362-26,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+1552,201-11 CC,normal,low,0.9451,0.2269,33.0,38.3,-13.83,6,0.5,0.3333,wape_over_50_pct_0.9451
+6107,366-19,cold_start_none,low,,,,,,0,,,insufficient_group_history
+6127,367-13,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+5230,355-38,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+4827,1706-05,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+20860,BEIRA-02,cold_start_none,low,,,,,,0,,,insufficient_group_history
+4116,909-69,cold_start_none,low,,,,,,0,,,insufficient_group_history
+3762,906-16,cold_start_none,low,,,,,,0,,,insufficient_group_history
+6114,366-26,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+1595,201-55,low,low,0.7565,1.9802,14.5,21.56,-14.5,6,0.5,0.0,wape_over_50_pct_0.7565
+1268,Lisos 21,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+19618,437-57,cold_start_none,low,,,,,,0,,,insufficient_group_history
+173,345-99,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+10073,DE-V1-107,trivial_zero,trivial_zero,0.0,0.0,0.0,0.0,0.0,6,0.0,0.0,dead_stock_zero_demand
+15805,407-29,normal,low,2.0,0.0691,0.33,0.58,0.0,6,0.1667,0.1667,wape_over_50_pct_2.0000
+20963,LIONI-19,cold_start_none,low,,,,,,0,,,insufficient_group_history
+20310,443-35,cold_start_none,low,,,,,,0,,,insufficient_group_history
+161,347-43,cold_start_none,low,,,,,,0,,,insufficient_group_history
+13277,401-06,low,low,1.3909,0.8528,9.74,11.25,1.39,6,0.3333,0.6667,wape_over_50_pct_1.3909

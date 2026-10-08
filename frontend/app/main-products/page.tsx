@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AppLayout from "@/components/AppLayout";
 
 type MainProductListItem = {
   main_product_template_id: number;
@@ -193,12 +194,11 @@ export default function MainProductsPage() {
   const [recommendationsMap, setRecommendationsMap] = useState<Record<number, MemberRecommendation>>({});
   const [memberIntelligenceMap, setMemberIntelligenceMap] = useState<Record<number, MemberIntelligence>>({});
 
-  // PO Flow States
-  const [isPoModalOpen, setIsPoModalOpen] = useState(false);
-  const [orderQuantity, setOrderQuantity] = useState<number | string>(0);
-  const [poSubmitting, setPoSubmitting] = useState(false);
-  const [poSuccess, setPoSuccess] = useState<{ po_number: string; quantity: number } | null>(null);
-  const [poError, setPoError] = useState("");
+  // Filtering & Pagination State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
 
   // Secondary Member Product Modal State (Part 1 Routing Fix)
   const [selectedMemberProductId, setSelectedMemberProductId] = useState<number | null>(null);
@@ -209,6 +209,27 @@ export default function MainProductsPage() {
   const [memberHistoryLoading, setMemberHistoryLoading] = useState(false);
 
   const requestId = useRef(0);
+
+  const filteredGroups = useMemo(() => {
+    let result = groups;
+    if (activeFilter !== "all") {
+      result = result.filter(g => g.action === activeFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(g =>
+        g.main_product_name.toLowerCase().includes(q) ||
+        String(g.main_product_template_id).includes(q)
+      );
+    }
+    return result;
+  }, [groups, activeFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / pageSize));
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredGroups.slice(start, start + pageSize);
+  }, [filteredGroups, currentPage, pageSize]);
 
   const handleLogout = useCallback(() => {
     sessionStorage.removeItem("auth_token");
@@ -357,9 +378,6 @@ export default function MainProductsPage() {
   const openDetail = useCallback(async (templateId: number) => {
     const currentRequest = ++requestId.current;
     setSelectedTemplateId(templateId);
-    setIsPoModalOpen(false);
-    setPoSuccess(null);
-    setPoError("");
 
     const cachedDetail = detailCache.get(templateId);
     const cachedHistory = groupHistoryCache.get(templateId);
@@ -369,8 +387,6 @@ export default function MainProductsPage() {
       setDetail(cachedDetail);
       setDetailLoading(false);
       setDetailError("");
-      const suggested = Number(cachedDetail.recommendation?.group_suggested_purchase_qty || 0);
-      setOrderQuantity(suggested > 0 ? suggested : 0);
       if (cachedDetail.group && Array.isArray(cachedDetail.group.members)) {
         void fetchMembersIntelligence(cachedDetail.group.members, currentRequest);
       }
@@ -440,8 +456,6 @@ export default function MainProductsPage() {
             approval_status: existingGroup.approval_status,
           },
         });
-        const suggested = Number(existingGroup.group_suggested_purchase_qty || 0);
-        setOrderQuantity(suggested > 0 ? suggested : 0);
         setDetailLoading(false);
       } else {
         setDetail(null);
@@ -512,8 +526,6 @@ export default function MainProductsPage() {
           setDetail(data);
           setDetailLoading(false);
           setDetailError("");
-          const suggested = Number(data.recommendation?.group_suggested_purchase_qty || 0);
-          setOrderQuantity(suggested > 0 ? suggested : 0);
           if (data.group && Array.isArray(data.group.members)) {
             void fetchMembersIntelligence(data.group.members, currentRequest);
           }
@@ -539,9 +551,6 @@ export default function MainProductsPage() {
     setGroupHistoryError("");
     setGroupHistoryLoading(false);
     setMemberIntelligenceMap({});
-    setIsPoModalOpen(false);
-    setPoSuccess(null);
-    setPoError("");
   }, []);
 
   const closeIndividualProduct = useCallback(() => {
@@ -596,8 +605,6 @@ export default function MainProductsPage() {
       if (event.key === "Escape") {
         if (selectedMemberProductId !== null) {
           closeIndividualProduct();
-        } else if (isPoModalOpen) {
-          setIsPoModalOpen(false);
         } else if (selectedTemplateId !== null) {
           closeDetail();
         }
@@ -605,7 +612,7 @@ export default function MainProductsPage() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedTemplateId, isPoModalOpen, selectedMemberProductId, closeDetail, closeIndividualProduct]);
+  }, [selectedTemplateId, selectedMemberProductId, closeDetail, closeIndividualProduct]);
 
   useEffect(() => {
     if (selectedTemplateId !== null) {
@@ -618,118 +625,89 @@ export default function MainProductsPage() {
     };
   }, [selectedTemplateId]);
 
-
-
-  async function handleConfirmPo() {
-    if (!detail || !token) return;
-    const qty = Number(orderQuantity);
-    if (isNaN(qty) || qty <= 0) {
-      setPoError("Please enter a valid positive quantity");
-      return;
-    }
-
-    setPoSubmitting(true);
-    setPoError("");
-    try {
-      const response = await fetch(
-        `${API_BASE}/api/main-products/${detail.main_product.template_id}/create-po`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ quantity: qty }),
-        },
-      );
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || "Failed to create Purchase Order");
-      }
-
-      const resData = await response.json();
-      setPoSuccess({ po_number: resData.po_number, quantity: resData.quantity });
-      setIsPoModalOpen(false);
-      void loadGroups();
-    } catch (err) {
-      setPoError(err instanceof Error ? err.message : "Error creating purchase order");
-    } finally {
-      setPoSubmitting(false);
-    }
-  }
-
-  if (!token || !user) return null;
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-900 font-sans">
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-slate-900/50 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
+    <AppLayout>
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-slate-900">Main Products &amp; Group Intelligence</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Aggregated demand forecasting and shared stock absorption across {groups.length} canonical groups
+                </p>
+              </div>
 
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col justify-between border-r border-slate-200 bg-white transition-transform lg:static lg:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div>
-          <div className="flex h-16 items-center border-b border-slate-200 px-6">
-            <span className="text-lg font-bold tracking-tight text-slate-900">Inventory Intelligence</span>
-          </div>
-          <nav className="space-y-1 p-4" aria-label="Primary navigation">
-            <Link href="/" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-              Overview
-            </Link>
-            <Link href="/main-products" className="flex w-full items-center gap-3 rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M5 7v13h14V7M8 7V4h8v3m-8 5h8m-8 4h5" /></svg>
-              Main Products
-            </Link>
-            <Link href="/recommendations" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 12h6m-6 4h6" /></svg>
-              Recommendations
-            </Link>
-            <Link href="/procurement" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              Procurement
-            </Link>
-            <Link href="/procurement/purchase-orders" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-              Draft POs
-            </Link>
-            <Link href="/account" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-              Account
-            </Link>
-          </nav>
-        </div>
-        <div className="border-t border-slate-200 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">{user.name.charAt(0).toUpperCase()}</div>
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-sm font-medium text-slate-900">{user.name}</span>
-              <span className="truncate text-xs text-slate-500">{user.email}</span>
+              {/* Search Bar */}
+              <div className="relative w-full md:w-72">
+                <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search group name or ID..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="block w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </div>
             </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-slate-600" title="Logout" aria-label="Logout">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            </button>
-          </div>
-        </div>
-      </aside>
 
-      {/* Main Content */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarOpen(true)} className="text-slate-500 lg:hidden" aria-label="Open navigation">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
-            <h1 className="text-lg font-semibold text-slate-900">Main Products</h1>
-          </div>
-        </header>
+            {/* Filter Tabs and Pagination Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-y border-slate-200 py-3">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  { id: "all", label: "All Groups", count: groups.length },
+                  { id: "purchase", label: "Needs Purchase", count: groups.filter(g => g.action === "purchase").length },
+                  { id: "review", label: "Review", count: groups.filter(g => g.action === "review").length },
+                  { id: "excess_stock", label: "Excess Stock", count: groups.filter(g => g.action === "excess_stock").length },
+                  { id: "dead_stock", label: "Dead Stock", count: groups.filter(g => g.action === "dead_stock").length },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveFilter(tab.id);
+                      setCurrentPage(1);
+                    }}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      activeFilter === tab.id
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                    }`}
+                  >
+                    {tab.label} ({tab.count})
+                  </button>
+                ))}
+              </div>
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Main Products</h2>
-              <p className="mt-1 text-sm text-slate-500">Group-level inventory intelligence, demand history, and replenishment</p>
+              {/* Pagination Info & Controls */}
+              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-600 shrink-0">
+                <span className="font-medium">
+                  {filteredGroups.length === 0 ? "0 groups" : `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, filteredGroups.length)} of ${filteredGroups.length}`}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                    aria-label="Previous page"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="px-2 font-bold text-slate-900">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="px-2.5 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                    aria-label="Next page"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -743,61 +721,116 @@ export default function MainProductsPage() {
               <p className="mt-2 text-sm text-red-700">{listError}</p>
               <button onClick={loadGroups} className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Retry</button>
             </section>
-          ) : groups.length === 0 ? (
+          ) : filteredGroups.length === 0 ? (
             <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
-              <h3 className="font-semibold text-slate-900">No main-product groups available</h3>
-              <p className="mt-2 text-sm text-slate-500">Product groups will appear here once configured.</p>
+              <h3 className="font-semibold text-slate-900">No matching product groups found</h3>
+              <p className="mt-2 text-sm text-slate-500">Try adjusting your search query or filter selection.</p>
             </section>
           ) : (
-            <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Main products list">
-              {groups.map(group => (
-                <button
-                  key={group.main_product_template_id}
-                  type="button"
-                  onClick={() => void openDetail(group.main_product_template_id)}
-                  className={`group rounded-xl border border-slate-200 p-5 text-left shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${priorityRowClass(group.priority)}`}
-                  aria-label={`Open main product ${group.main_product_name}`}
-                >
-                  {/* Top Bar: Title, Group Size & Action / Stock breakdown */}
-                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Main Product</p>
-                      <h3 className="mt-1 truncate text-xl font-bold text-slate-900 group-hover:text-blue-800">{group.main_product_name}</h3>
-                      <p className="mt-0.5 text-xs text-slate-500">{group.group_size} products</p>
-                    </div>
-                    <div className="flex flex-col items-end shrink-0 gap-1.5">
-                      <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold capitalize ${actionClass(group.action)}`}>
-                        {displayLabel(group.action)}
-                      </span>
-                      <div className="flex items-center text-xs text-slate-600">
-                        <span>Usable: <span className="font-semibold text-emerald-600">{formatNumber(group.group_usable_qty)}</span></span>
-                        <span className="mx-1 text-slate-400">·</span>
-                        <span>Cut-piece: <span className="font-semibold text-rose-600">{formatNumber(group.group_cut_piece_qty)}</span></span>
+            <>
+              <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Main products list">
+                {paginatedGroups.map(group => (
+                  <button
+                    key={group.main_product_template_id}
+                    type="button"
+                    onClick={() => void openDetail(group.main_product_template_id)}
+                    className={`group rounded-xl border border-slate-200 p-5 text-left shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${priorityRowClass(group.priority)}`}
+                    aria-label={`Open main product ${group.main_product_name}`}
+                  >
+                    {/* Top Bar: Title, Group Size & Action / Stock breakdown */}
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Main Product</p>
+                          <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                            ID: {group.main_product_template_id}
+                          </span>
+                        </div>
+                        <h3 className="mt-1 truncate text-lg font-bold text-slate-900 group-hover:text-blue-800">{group.main_product_name}</h3>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+                          <span>{group.group_size} products</span>
+                          <span>·</span>
+                          <span className="capitalize">{group.best_model || "trimmed_mean_3"}</span>
+                          {group.confidence && (
+                            <>
+                              <span>·</span>
+                              <span className="capitalize text-slate-600 font-medium">{group.confidence} conf</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end shrink-0 gap-1.5">
+                        <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold capitalize ${actionClass(group.action)}`}>
+                          {displayLabel(group.action)}
+                        </span>
+                        <div className="flex items-center text-xs text-slate-600">
+                          <span>Usable: <span className="font-semibold text-emerald-600">{formatNumber(group.group_usable_qty)}</span></span>
+                          <span className="mx-1 text-slate-400">·</span>
+                          <span>Cut: <span className="font-semibold text-rose-600">{formatNumber(group.group_cut_piece_qty)}</span></span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Clean Metrics Grid */}
-                  <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                      <p className="text-xs font-medium text-slate-500">Forecast</p>
-                      <p className="mt-1 text-base font-bold text-slate-900">{formatNumber(group.group_next_month_forecast)}</p>
+                    {/* Clean Metrics Grid */}
+                    <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
+                        <p className="text-[11px] font-medium text-slate-500">Forecast</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_next_month_forecast)}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
+                        <p className="text-[11px] font-medium text-slate-500">Target</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_buffered_target_stock)}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
+                        <p className="text-[11px] font-medium text-slate-500">Total Stock</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_current_stock)}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
+                        <p className="text-[11px] font-medium text-slate-500">Suggested</p>
+                        <p className={`mt-1 text-sm font-bold ${Number(group.group_suggested_purchase_qty) > 0 ? "text-blue-700" : "text-slate-700"}`}>
+                          {formatNumber(group.group_suggested_purchase_qty)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                      <p className="text-xs font-medium text-slate-500">Total Stock</p>
-                      <p className="mt-1 text-base font-bold text-slate-900">{formatNumber(group.group_current_stock)}</p>
-                    </div>
-                    <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                      <p className="text-xs font-medium text-slate-500">Suggested Purchase</p>
-                      <p className="mt-1 text-base font-bold text-blue-900">{formatNumber(group.group_suggested_purchase_qty)} units</p>
-                    </div>
+                  </button>
+                ))}
+              </section>
+
+              {/* Bottom Pagination Bar */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-600">
+                  <span>
+                    Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredGroups.length)} of {filteredGroups.length} groups
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setCurrentPage(p => Math.max(1, p - 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      ← Previous
+                    </button>
+                    <span className="px-2 font-bold text-slate-900">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setCurrentPage(p => Math.min(totalPages, p + 1));
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      disabled={currentPage >= totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      Next →
+                    </button>
                   </div>
-                </button>
-              ))}
-            </section>
+                </div>
+              )}
+            </>
           )}
-        </main>
-      </div>
 
       {/* Main Product Detail Modal */}
       {selectedTemplateId !== null && (
@@ -908,48 +941,6 @@ export default function MainProductsPage() {
                 <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{detailError}</div>
               ) : detail ? (
                 <>
-                  {/* PART 14: PURCHASE ORDER SECTION (TOP OF DETAIL) */}
-                  {detail.group.group_valid && (
-                    <section className="rounded-xl border border-blue-200 bg-blue-50/70 p-5 shadow-xs">
-                      <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-blue-800">PURCHASE ORDER</p>
-                          <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                            <span className="text-sm font-medium text-slate-700">Main Product:</span>
-                            <span className="text-base font-bold text-slate-900">{detail.main_product.name}</span>
-                          </div>
-                          <p className="mt-1 text-xs text-slate-600">
-                            System Suggested Quantity: <span className="font-bold text-blue-900">{formatNumber(detail.recommendation.group_suggested_purchase_qty)}</span> units
-                          </p>
-                          {Number(detail.recommendation.group_suggested_purchase_qty) === 0 && (
-                            <p className="mt-1 text-[11px] text-slate-500">
-                              No purchase currently recommended — manual ordering is still available.
-                            </p>
-                          )}
-                          {poSuccess && (
-                            <p className="mt-2 text-xs font-semibold text-emerald-700">
-                              ✓ Purchase Order <span className="font-bold">{poSuccess.po_number}</span> confirmed for {formatNumber(poSuccess.quantity)} units
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const suggested = Number(detail.recommendation.group_suggested_purchase_qty) || 0;
-                              setOrderQuantity(suggested > 0 ? suggested : 0);
-                              setIsPoModalOpen(true);
-                            }}
-                            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all active:scale-[0.99]"
-                          >
-                            Create Purchase Order
-                          </button>
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
                   {/* PART 5 & 6: INVENTORY OVERVIEW (3 PRIMARY BOXES) */}
                   <section>
                     <div className="mb-3">
@@ -1133,75 +1124,6 @@ export default function MainProductsPage() {
         </div>
       )}
 
-      {/* PART 14: PURCHASE ORDER CONFIRMATION MODAL */}
-      {isPoModalOpen && detail && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center overflow-hidden bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">Purchase Order</h3>
-              <button onClick={() => setIsPoModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <div>
-                <span className="block text-xs font-medium text-slate-500">Main Product</span>
-                <span className="mt-0.5 block text-base font-bold text-slate-900">{detail.main_product.name}</span>
-              </div>
-
-              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-3 text-xs text-blue-900">
-                <span className="font-semibold">System Suggested Quantity:</span>{" "}
-                <span className="font-bold">{formatNumber(detail.recommendation.group_suggested_purchase_qty)}</span> units
-              </div>
-
-              <div>
-                <label htmlFor="po-qty-input" className="block text-xs font-semibold text-slate-700">
-                  Quantity to Order
-                </label>
-                <input
-                  id="po-qty-input"
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={orderQuantity}
-                  onChange={e => setOrderQuantity(e.target.value)}
-                  className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3.5 py-2 text-base font-semibold text-slate-900 shadow-xs focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                <p className="mt-1.5 text-xs text-slate-500">
-                  Suggested quantity is based on group forecast and inventory position.
-                </p>
-              </div>
-
-              {poError && (
-                <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-700">
-                  {poError}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={() => setIsPoModalOpen(false)}
-                disabled={poSubmitting}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPo}
-                disabled={poSubmitting}
-                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {poSubmitting ? "Confirming..." : "Confirm Purchase Order"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* INDIVIDUAL MEMBER PRODUCT DETAIL MODAL (NESTED OVER MAIN PRODUCT MODAL) */}
       {selectedMemberProductId !== null && (
         <div
@@ -1322,7 +1244,7 @@ export default function MainProductsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }
 

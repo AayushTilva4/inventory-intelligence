@@ -1,0 +1,334 @@
+group_id,group_code,pattern,cutoff,candidate_model,h1_wape,h3_wape,h4_wape,h3_mae,h4_mae,h3_mase,h4_mase,bias_h4,combined_score,selected_under_legacy,selected_under_h3,selected_under_h4,selected_under_combined
+10699,393-29,fast_moving,T,previous_month,1.5252,1.5901,1.65,219.83,296.58,0.7838,0.7931,188.58,1.626,False,False,False,False
+10699,393-29,fast_moving,T,moving_average_3,1.3283,1.4187,1.4491,196.14,260.48,0.6994,0.6966,217.72,1.437,True,False,False,False
+10699,393-29,fast_moving,T,moving_average_6,1.3605,1.4186,1.4505,196.12,260.73,0.6993,0.6972,260.73,1.4377,False,False,False,False
+10699,393-29,fast_moving,T,seasonal_naive,0.9664,0.8987,0.9991,124.25,179.58,0.443,0.4802,123.92,0.9589,False,False,False,False
+10699,393-29,fast_moving,T,croston,1.056,0.9302,0.9794,128.6,176.05,0.4585,0.4708,176.05,0.9597,False,False,False,False
+10699,393-29,fast_moving,T,ses,0.9573,0.7417,0.7861,102.54,141.31,0.3656,0.3779,141.31,0.7684,False,False,False,False
+10699,393-29,fast_moving,T,trimmed_mean_3,0.9614,0.8867,0.8887,122.58,159.74,0.4371,0.4272,38.24,0.8879,False,False,False,False
+10699,393-29,fast_moving,T,winsorized_mean_3,0.9978,0.9621,0.9768,133.02,175.59,0.4743,0.4696,88.57,0.971,False,False,False,False
+10699,393-29,fast_moving,T,median_baseline,0.7198,0.3737,0.2749,51.67,49.42,0.1842,0.1321,-48.75,0.3144,False,True,True,True
+4985,1104-39,intermittent,T,previous_month,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,True,False,True
+4985,1104-39,intermittent,T,moving_average_3,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,False,False,False
+4985,1104-39,intermittent,T,moving_average_6,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,False,False,False
+4985,1104-39,intermittent,T,seasonal_naive,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,True,False,False,False
+4985,1104-39,intermittent,T,croston,2.4329,1.1493,1.1493,45.97,61.3,1.6462,1.6462,61.3,1.1493,False,False,False,False
+4985,1104-39,intermittent,T,ses,1.0906,1.0299,0.9908,41.2,52.84,1.4752,1.4192,-47.24,1.0065,False,False,True,False
+4985,1104-39,intermittent,T,trimmed_mean_3,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,False,False,False
+4985,1104-39,intermittent,T,winsorized_mean_3,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,False,False,False
+4985,1104-39,intermittent,T,median_baseline,1.0,1.0,1.0,40.0,53.33,1.4323,1.4323,-53.33,1.0,False,False,False,False
+11440,1102-27,intermittent,T,previous_month,2.0,1.0854,1.0683,22.25,36.5,0.5213,0.6414,-31.83,1.0751,False,False,False,False
+11440,1102-27,intermittent,T,moving_average_3,10.0,1.6334,1.4823,33.48,50.64,0.7845,0.8899,-12.82,1.5427,False,False,False,False
+11440,1102-27,intermittent,T,moving_average_6,14.7143,1.8855,1.4386,38.65,49.15,0.9056,0.8637,-0.82,1.6174,False,False,False,False
+11440,1102-27,intermittent,T,seasonal_naive,7.7143,1.1504,0.9049,23.58,30.92,0.5525,0.5432,-14.42,1.0031,False,False,True,False
+11440,1102-27,intermittent,T,croston,17.7775,1.4785,1.0739,30.31,36.69,0.7101,0.6447,9.65,1.2357,False,False,False,False
+11440,1102-27,intermittent,T,ses,13.8729,1.3697,0.9869,28.08,33.72,0.6579,0.5925,0.54,1.14,False,False,False,False
+11440,1102-27,intermittent,T,trimmed_mean_3,1.0,1.0,1.0,20.5,34.17,0.4803,0.6004,-34.17,1.0,False,True,False,True
+11440,1102-27,intermittent,T,winsorized_mean_3,1.0,1.0,1.0,20.5,34.17,0.4803,0.6004,-34.17,1.0,False,False,False,False
+11440,1102-27,intermittent,T,median_baseline,1.0,1.0,1.0,20.5,34.17,0.4803,0.6004,-34.17,1.0,False,False,False,False
+820,DE-V1-160,falling,T,previous_month,1.9369,1.9356,2.1209,85.17,108.17,0.3742,0.3564,21.67,2.0468,True,False,False,False
+820,DE-V1-160,falling,T,moving_average_3,3.3243,2.2872,2.5602,100.64,130.57,0.4421,0.4302,89.98,2.451,False,False,False,False
+820,DE-V1-160,falling,T,moving_average_6,3.0458,3.6702,4.1643,161.49,212.38,0.7095,0.6998,212.38,3.9667,False,False,False,False
+820,DE-V1-160,falling,T,seasonal_naive,3.0631,3.339,3.4428,146.92,175.58,0.6455,0.5786,174.58,3.4013,False,False,False,False
+820,DE-V1-160,falling,T,croston,3.1017,3.8316,4.558,168.59,232.46,0.7407,0.7659,232.46,4.2674,False,False,False,False
+820,DE-V1-160,falling,T,ses,2.8587,2.9428,3.5355,129.48,180.31,0.5689,0.5941,180.31,3.2984,False,False,False,False
+820,DE-V1-160,falling,T,trimmed_mean_3,1.009,0.9844,0.9833,43.31,50.15,0.1903,0.1652,-50.15,0.9837,False,False,False,False
+820,DE-V1-160,falling,T,winsorized_mean_3,1.012,0.9763,0.9735,42.96,49.65,0.1887,0.1636,-49.65,0.9746,False,True,True,True
+820,DE-V1-160,falling,T,median_baseline,2.1329,1.554,1.9379,68.38,98.83,0.3004,0.3257,98.83,1.7843,False,False,False,False
+10692,393-22,fast_moving,T,previous_month,1.4136,1.16,0.9496,342.58,360.83,1.3174,1.0407,-89.67,1.0337,False,False,False,False
+10692,393-22,fast_moving,T,moving_average_3,1.2673,0.6618,0.4333,195.46,164.67,0.7516,0.4749,-71.21,0.5247,False,False,False,False
+10692,393-22,fast_moving,T,moving_average_6,1.1405,0.5456,0.3416,161.14,129.8,0.6196,0.3744,2.36,0.4232,False,False,False,False
+10692,393-22,fast_moving,T,seasonal_naive,1.0711,0.5124,0.3175,151.33,120.67,0.5819,0.348,-3.33,0.3955,False,False,False,False
+10692,393-22,fast_moving,T,croston,1.2002,0.4031,0.2792,119.04,106.08,0.4578,0.306,75.9,0.3287,True,True,False,False
+10692,393-22,fast_moving,T,ses,1.0598,0.4194,0.2104,123.88,79.95,0.4764,0.2306,-61.08,0.294,False,False,True,True
+10692,393-22,fast_moving,T,trimmed_mean_3,1.1032,0.8464,0.7376,249.98,280.3,0.9613,0.8084,-272.69,0.7812,False,False,False,False
+10692,393-22,fast_moving,T,winsorized_mean_3,1.1192,0.8552,0.6792,252.58,258.09,0.9713,0.7443,-248.72,0.7496,False,False,False,False
+10692,393-22,fast_moving,T,median_baseline,1.0314,0.5014,0.3039,148.08,115.5,0.5694,0.3331,-110.67,0.3829,False,False,False,False
+10693,393-23,falling,T,previous_month,1.2415,2.2879,2.4329,260.25,363.92,0.8728,0.9154,147.75,2.3749,True,False,False,False
+10693,393-23,falling,T,moving_average_3,1.1778,2.0967,2.0496,238.5,306.58,0.7998,0.7711,202.73,2.0684,False,False,False,False
+10693,393-23,falling,T,moving_average_6,1.4138,2.2496,2.0949,255.89,313.37,0.8582,0.7882,313.37,2.1568,False,False,False,False
+10693,393-23,falling,T,seasonal_naive,1.2263,1.441,1.4992,163.92,224.25,0.5497,0.5641,219.75,1.4759,False,False,False,False
+10693,393-23,falling,T,croston,1.394,2.0367,1.7622,231.68,263.6,0.777,0.663,233.17,1.872,False,False,False,False
+10693,393-23,falling,T,ses,1.3166,1.7804,1.5023,202.52,224.72,0.6792,0.5652,188.94,1.6135,False,False,False,False
+10693,393-23,falling,T,trimmed_mean_3,1.0944,1.294,1.2522,147.2,187.31,0.4937,0.4711,-9.71,1.2689,False,False,False,False
+10693,393-23,falling,T,winsorized_mean_3,1.1559,1.4077,1.3999,160.13,209.4,0.537,0.5267,31.39,1.403,False,False,False,False
+10693,393-23,falling,T,median_baseline,1.143,1.1421,0.9688,129.92,144.92,0.4357,0.3645,47.75,1.0381,False,True,True,True
+6909,373-37,intermittent,T,previous_month,1.4744,1.4332,1.3787,59.0,77.67,1.4904,1.4715,-31.67,1.4005,False,False,False,False
+6909,373-37,intermittent,T,moving_average_3,1.4231,1.3906,1.2032,57.25,67.78,1.4462,1.2842,-31.67,1.2782,False,False,False,False
+6909,373-37,intermittent,T,moving_average_6,1.4295,1.1191,0.9696,46.07,54.62,1.1638,1.0348,-27.78,1.0294,False,False,False,False
+6909,373-37,intermittent,T,seasonal_naive,0.2821,0.6781,0.6893,27.92,38.83,0.7052,0.7357,38.83,0.6849,True,True,True,True
+6909,373-37,intermittent,T,croston,1.4457,0.9886,0.7776,40.7,43.8,1.0281,0.8299,-18.14,0.862,False,False,False,False
+6909,373-37,intermittent,T,ses,1.4902,1.0004,0.7635,41.18,43.01,1.0404,0.8149,-15.57,0.8582,False,False,False,False
+6909,373-37,intermittent,T,trimmed_mean_3,1.0128,1.0091,0.9915,41.54,55.85,1.0494,1.0582,-55.85,0.9985,False,False,False,False
+6909,373-37,intermittent,T,winsorized_mean_3,1.0171,1.0138,0.9867,41.73,55.58,1.0543,1.0531,-55.58,0.9975,False,False,False,False
+6909,373-37,intermittent,T,median_baseline,1.0,1.0,1.0,41.17,56.33,1.0399,1.0673,-56.33,1.0,False,False,False,False
+6623,379-06,falling,T,previous_month,30.9694,40.7729,9.9029,288.81,420.05,0.2655,0.2896,341.22,22.2509,True,False,False,False
+6623,379-06,falling,T,moving_average_3,33.7935,42.8993,10.3764,303.87,440.13,0.2793,0.3034,361.3,23.3856,False,False,False,False
+6623,379-06,falling,T,moving_average_6,75.775,82.4651,16.9287,584.13,718.06,0.537,0.4951,699.52,43.1433,False,False,False,False
+6623,379-06,falling,T,seasonal_naive,34.25,66.0941,17.9253,468.17,760.33,0.4304,0.5242,760.33,37.1929,False,False,False,False
+6623,379-06,falling,T,croston,106.4155,135.4809,29.3887,959.66,1246.57,0.8822,0.8594,1246.57,71.8256,False,False,False,False
+6623,379-06,falling,T,ses,108.5711,138.2197,29.9985,979.06,1272.44,0.9,0.8773,1272.44,73.287,False,False,False,False
+6623,379-06,falling,T,trimmed_mean_3,4.2361,5.3544,1.9675,37.93,83.45,0.0349,0.0575,4.62,3.3222,False,True,True,True
+6623,379-06,falling,T,winsorized_mean_3,5.9815,7.8662,2.5542,55.72,108.34,0.0512,0.0747,29.51,4.679,False,False,False,False
+6623,379-06,falling,T,median_baseline,78.4167,99.9059,21.4676,707.67,910.58,0.6505,0.6278,910.58,52.8429,False,False,False,False
+6032,18825,dead_stock,T,previous_month,2.1333,2.3,2.7333,11.5,13.67,0.301,0.2683,6.33,2.56,True,False,False,False
+6032,18825,dead_stock,T,moving_average_3,2.2778,2.1716,2.5621,10.86,12.81,0.2842,0.2515,7.72,2.4059,False,False,False,False
+6032,18825,dead_stock,T,moving_average_6,2.0056,1.9953,2.3417,9.98,11.71,0.2611,0.2299,8.82,2.2032,False,False,False,False
+6032,18825,dead_stock,T,seasonal_naive,4.8,6.2333,7.6667,31.17,38.33,0.8158,0.7525,38.33,7.0933,False,False,False,False
+6032,18825,dead_stock,T,croston,3.0535,3.6265,5.1687,18.13,25.84,0.4746,0.5073,25.84,4.5518,False,False,False,False
+6032,18825,dead_stock,T,ses,2.3291,1.9936,2.6773,9.97,13.39,0.2609,0.2628,13.39,2.4038,False,False,False,False
+6032,18825,dead_stock,T,trimmed_mean_3,1.1333,1.0,1.0,5.0,5.0,0.1309,0.0982,-4.04,1.0,False,True,True,True
+6032,18825,dead_stock,T,winsorized_mean_3,1.1778,1.0,1.0,5.0,5.0,0.1309,0.0982,-3.5,1.0,False,False,False,False
+6032,18825,dead_stock,T,median_baseline,2.0167,1.725,2.1,8.62,10.5,0.2258,0.2061,10.5,1.95,False,False,False,False
+10063,DE-V1-05,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+10063,DE-V1-05,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,croston,1.0,1.0,1.0,99.04,132.05,10.1898,10.1898,132.05,1.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,ses,1.0,1.0,1.0,0.73,0.97,0.0752,0.0752,0.97,1.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10063,DE-V1-05,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+10700,393-30,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,croston,1.0,1.0,1.0,340.62,454.16,7.2276,7.2276,454.16,1.0,False,False,False,False
+10700,393-30,dead_stock,T,ses,1.0,1.0,1.0,5.25,7.0,0.1114,0.1114,7.0,1.0,False,False,False,False
+10700,393-30,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10700,393-30,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9124,385-07,intermittent,T,previous_month,5.2727,5.5769,5.8824,12.08,16.67,0.0748,0.0774,12.83,5.7602,True,True,True,True
+9124,385-07,intermittent,T,moving_average_3,22.303,22.8048,23.5853,49.41,66.83,0.3059,0.3103,65.49,23.2731,False,False,False,False
+9124,385-07,intermittent,T,moving_average_6,35.5,41.2794,40.4894,89.44,114.72,0.5538,0.5328,114.72,40.8054,False,False,False,False
+9124,385-07,intermittent,T,seasonal_naive,64.2727,79.4615,69.7647,172.17,197.67,1.066,0.918,197.67,73.6434,False,False,False,False
+9124,385-07,intermittent,T,croston,70.1918,89.3588,91.1305,193.61,258.2,1.1988,1.1991,258.2,90.4218,False,False,False,False
+9124,385-07,intermittent,T,ses,14.6576,18.8732,19.4314,40.89,55.06,0.2532,0.2557,54.58,19.2081,False,False,False,False
+9124,385-07,intermittent,T,trimmed_mean_3,10.5,9.6587,9.7188,20.93,27.54,0.1296,0.1279,25.54,9.6947,False,False,False,False
+9124,385-07,intermittent,T,winsorized_mean_3,13.2424,13.3846,13.6805,29.0,38.76,0.1796,0.18,36.76,13.5621,False,False,False,False
+9124,385-07,intermittent,T,median_baseline,26.5455,33.9615,34.6471,73.58,98.17,0.4556,0.4559,98.17,34.3729,False,False,False,False
+6907,377-14,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+6907,377-14,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6907,377-14,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6907,377-14,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6907,377-14,dead_stock,T,croston,1.0,1.0,1.0,42.27,56.35,5.1452,5.1452,56.35,1.0,False,False,False,False
+6907,377-14,dead_stock,T,ses,1.0,1.0,1.0,0.15,0.2,0.0187,0.0187,0.2,1.0,False,False,False,False
+6907,377-14,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6907,377-14,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6907,377-14,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+854,202-18,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,croston,1.0,1.0,1.0,16.13,21.51,0.9789,0.9789,21.51,1.0,False,False,False,False
+854,202-18,dead_stock,T,ses,1.0,1.0,1.0,7.14,9.52,0.4334,0.4334,9.52,1.0,False,False,False,False
+854,202-18,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+854,202-18,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+8502,360-30,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,croston,1.0,1.0,1.0,24.0,32.0,29.4009,29.4009,32.0,1.0,False,False,False,False
+8502,360-30,dead_stock,T,ses,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,False
+8502,360-30,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+8502,360-30,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1882,301-02,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+1882,301-02,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1882,301-02,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1882,301-02,dead_stock,T,seasonal_naive,1.0,1.0,1.0,0.58,0.58,0.0414,0.0311,0.58,1.0,False,False,False,False
+1882,301-02,dead_stock,T,croston,1.0,1.0,1.0,34.37,45.83,2.4411,2.4411,45.83,1.0,False,False,False,False
+1882,301-02,dead_stock,T,ses,1.0,1.0,1.0,1.56,2.08,0.1108,0.1108,2.08,1.0,False,False,False,False
+1882,301-02,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1882,301-02,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1882,301-02,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+14403,394-27,intermittent,T,previous_month,1.7224,2.9034,3.4325,276.88,351.08,2.4562,2.3358,195.52,3.2208,False,False,False,False
+14403,394-27,intermittent,T,moving_average_3,1.6433,2.814,3.2676,268.36,334.22,2.3805,2.2236,194.61,3.0861,False,False,False,False
+14403,394-27,intermittent,T,moving_average_6,1.4779,2.6056,3.0374,248.49,310.68,2.2043,2.067,171.53,2.8647,False,False,False,False
+14403,394-27,intermittent,T,seasonal_naive,0.9519,0.9205,0.9218,87.78,94.28,0.7787,0.6273,-94.28,0.9213,True,True,True,True
+14403,394-27,intermittent,T,croston,1.0268,1.2677,1.3453,120.9,137.6,1.0725,0.9155,11.78,1.3143,False,False,False,False
+14403,394-27,intermittent,T,ses,1.0121,1.1786,1.2345,112.4,126.27,0.9971,0.8401,-9.31,1.2121,False,False,False,False
+14403,394-27,intermittent,T,trimmed_mean_3,1.0151,1.0984,1.1277,104.75,115.34,0.9292,0.7674,-61.73,1.116,False,False,False,False
+14403,394-27,intermittent,T,winsorized_mean_3,1.0362,1.1587,1.1849,110.51,121.19,0.9803,0.8063,-50.84,1.1744,False,False,False,False
+14403,394-27,intermittent,T,median_baseline,1.0,1.0,1.0,95.37,102.28,0.846,0.6805,-102.28,1.0,False,False,False,False
+273,344-06,intermittent,T,previous_month,0.0,1.0,1.0,3.5,5.67,0.3239,0.3934,-5.67,1.0,False,False,False,False
+273,344-06,intermittent,T,moving_average_3,1.0,1.5432,1.4473,5.4,8.2,0.4999,0.5693,-3.13,1.4857,True,False,False,False
+273,344-06,intermittent,T,moving_average_6,1.0,3.1243,2.397,10.94,13.58,1.0121,0.9429,4.01,2.6879,False,False,False,False
+273,344-06,intermittent,T,seasonal_naive,1.0,0.9048,0.9706,3.17,5.5,0.2931,0.3818,-0.17,0.9443,False,True,True,True
+273,344-06,intermittent,T,croston,1.0,8.5938,6.9007,30.08,39.1,2.7839,2.7145,39.1,7.578,False,False,False,False
+273,344-06,intermittent,T,ses,1.0,1.7344,1.1122,6.07,6.3,0.5618,0.4375,3.77,1.3611,False,False,False,False
+273,344-06,intermittent,T,trimmed_mean_3,0.0,1.0,1.0,3.5,5.67,0.3239,0.3934,-5.67,1.0,False,False,False,False
+273,344-06,intermittent,T,winsorized_mean_3,0.0,1.0,1.0,3.5,5.67,0.3239,0.3934,-5.67,1.0,False,False,False,False
+273,344-06,intermittent,T,median_baseline,0.0,1.0,1.0,3.5,5.67,0.3239,0.3934,-5.67,1.0,False,False,False,False
+176,345-65,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+176,345-65,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+176,345-65,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+176,345-65,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+176,345-65,dead_stock,T,croston,1.0,1.0,1.0,40.81,54.42,2.2608,2.2608,54.42,1.0,False,False,False,False
+176,345-65,dead_stock,T,ses,1.0,1.0,1.0,4.19,5.58,0.232,0.232,5.58,1.0,False,False,False,False
+176,345-65,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+176,345-65,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+176,345-65,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+15820,407-44,intermittent,T,previous_month,2.0,0.7692,0.9286,1.0,1.73,0.1549,0.2013,-1.2,0.8648,False,True,False,False
+15820,407-44,intermittent,T,moving_average_3,1.3333,0.8243,0.8369,1.07,1.56,0.166,0.1814,-1.56,0.8318,True,False,True,True
+15820,407-44,intermittent,T,moving_average_6,1.1667,0.9246,0.9239,1.2,1.72,0.1861,0.2003,-1.72,0.9242,False,False,False,False
+15820,407-44,intermittent,T,seasonal_naive,11.5,4.0128,2.9196,5.22,5.45,0.8079,0.633,3.05,3.3569,False,False,False,False
+15820,407-44,intermittent,T,croston,62.636,23.4754,21.7271,30.52,40.56,4.7262,4.7107,40.56,22.4264,False,False,False,False
+15820,407-44,intermittent,T,ses,9.2878,2.9568,2.6742,3.84,4.99,0.5953,0.5798,4.99,2.7873,False,False,False,False
+15820,407-44,intermittent,T,trimmed_mean_3,1.0,1.0,1.0,1.3,1.87,0.2013,0.2168,-1.87,1.0,False,False,False,False
+15820,407-44,intermittent,T,winsorized_mean_3,1.0,1.0,1.0,1.3,1.87,0.2013,0.2168,-1.87,1.0,False,False,False,False
+15820,407-44,intermittent,T,median_baseline,1.0,1.0,1.0,1.3,1.87,0.2013,0.2168,-1.87,1.0,False,False,False,False
+790,324-53,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+790,324-53,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+790,324-53,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+790,324-53,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+790,324-53,dead_stock,T,croston,1.0,1.0,1.0,35.74,47.66,0.9952,0.9952,47.66,1.0,False,False,False,False
+790,324-53,dead_stock,T,ses,1.0,1.0,1.0,2.69,3.59,0.075,0.075,3.59,1.0,False,False,False,False
+790,324-53,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+790,324-53,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+790,324-53,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+576,1104-15,intermittent,T,previous_month,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,True,True,True
+576,1104-15,intermittent,T,moving_average_3,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,False,False,False
+576,1104-15,intermittent,T,moving_average_6,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,False,False,False
+576,1104-15,intermittent,T,seasonal_naive,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,True,False,False,False
+576,1104-15,intermittent,T,croston,12.5455,12.5455,12.5455,18.82,25.09,1.4732,1.4732,25.09,12.5455,False,False,False,False
+576,1104-15,intermittent,T,ses,3.8524,3.1302,3.1302,4.7,6.26,0.3676,0.3676,6.26,3.1302,False,False,False,False
+576,1104-15,intermittent,T,trimmed_mean_3,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,False,False,False
+576,1104-15,intermittent,T,winsorized_mean_3,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,False,False,False
+576,1104-15,intermittent,T,median_baseline,1.0,1.0,1.0,1.5,2.0,0.1174,0.1174,-2.0,1.0,False,False,False,False
+292,344-25,dead_stock,T,previous_month,4.7857,14.6774,19.9032,151.67,205.67,2.9515,3.0018,205.67,17.8129,True,False,False,False
+292,344-25,dead_stock,T,moving_average_3,4.7857,14.6774,19.9032,151.67,205.67,2.9515,3.0018,205.67,17.8129,False,False,False,False
+292,344-25,dead_stock,T,moving_average_6,4.7917,14.4318,19.6166,149.13,202.7,2.9021,2.9586,202.7,17.5427,False,False,False,False
+292,344-25,dead_stock,T,seasonal_naive,1.0,1.0,1.0,10.33,10.33,0.2011,0.1508,-10.33,1.0,False,True,True,True
+292,344-25,dead_stock,T,croston,1.6264,3.0844,3.8437,31.87,39.72,0.6202,0.5797,34.96,3.5399,False,False,False,False
+292,344-25,dead_stock,T,ses,1.6092,3.0378,3.7816,31.39,39.08,0.6109,0.5703,34.5,3.4841,False,False,False,False
+292,344-25,dead_stock,T,trimmed_mean_3,1.7857,3.3145,4.0161,34.25,41.5,0.6665,0.6057,22.83,3.7355,False,False,False,False
+292,344-25,dead_stock,T,winsorized_mean_3,2.0833,4.1434,5.176,42.81,53.49,0.8332,0.7806,34.82,4.763,False,False,False,False
+292,344-25,dead_stock,T,median_baseline,1.0,1.0,1.0,10.33,10.33,0.2011,0.1508,-10.33,1.0,False,False,False,False
+5761,362-26,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+5761,362-26,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5761,362-26,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5761,362-26,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5761,362-26,dead_stock,T,croston,1.0,1.0,1.0,50.5,67.33,7.733,7.733,67.33,1.0,False,False,False,False
+5761,362-26,dead_stock,T,ses,1.0,1.0,1.0,0.12,0.16,0.018,0.018,0.16,1.0,False,False,False,False
+5761,362-26,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5761,362-26,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5761,362-26,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1552,201-11 CC,falling,T,previous_month,0.9951,0.9075,1.1041,80.17,136.08,0.1825,0.2324,54.08,1.0255,True,False,False,False
+1552,201-11 CC,falling,T,moving_average_3,1.1353,1.0836,1.1494,95.72,141.66,0.2179,0.2419,99.35,1.1231,False,False,False,False
+1552,201-11 CC,falling,T,moving_average_6,2.0077,2.1875,1.979,193.23,243.91,0.4399,0.4165,235.35,2.0624,False,False,False,False
+1552,201-11 CC,falling,T,seasonal_naive,2.2323,1.5302,1.8594,135.17,229.17,0.3077,0.3913,192.0,1.7277,False,False,False,False
+1552,201-11 CC,falling,T,croston,2.1754,2.6757,2.5125,236.35,309.66,0.5381,0.5288,309.66,2.5778,False,False,False,False
+1552,201-11 CC,falling,T,ses,2.8186,3.4202,3.2239,302.11,397.35,0.6878,0.6785,397.35,3.3024,False,False,False,False
+1552,201-11 CC,falling,T,trimmed_mean_3,0.6296,0.6463,0.784,57.09,96.63,0.13,0.165,27.17,0.7289,False,True,True,True
+1552,201-11 CC,falling,T,winsorized_mean_3,0.7156,0.708,0.7978,62.54,98.32,0.1424,0.1679,40.63,0.7619,False,False,False,False
+1552,201-11 CC,falling,T,median_baseline,1.2274,1.0887,0.9959,96.17,122.75,0.2189,0.2096,122.75,1.033,False,False,False,False
+6127,367-13,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+6127,367-13,dead_stock,T,moving_average_3,1.0,1.0,1.0,3.53,4.71,0.0739,0.0739,4.71,1.0,False,False,False,False
+6127,367-13,dead_stock,T,moving_average_6,1.0,1.0,1.0,5.23,6.82,0.1094,0.1071,6.82,1.0,False,False,False,False
+6127,367-13,dead_stock,T,seasonal_naive,1.0,1.0,1.0,37.58,37.58,0.7869,0.5902,37.58,1.0,False,False,False,False
+6127,367-13,dead_stock,T,croston,1.0,1.0,1.0,34.5,46.0,0.7223,0.7223,46.0,1.0,False,False,False,False
+6127,367-13,dead_stock,T,ses,1.0,1.0,1.0,21.4,28.54,0.4481,0.4481,28.54,1.0,False,False,False,False
+6127,367-13,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6127,367-13,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6127,367-13,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+5230,355-38,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,croston,1.0,1.0,1.0,38.14,50.86,1.7916,1.7916,50.86,1.0,False,False,False,False
+5230,355-38,dead_stock,T,ses,1.0,1.0,1.0,1.48,1.97,0.0695,0.0695,1.97,1.0,False,False,False,False
+5230,355-38,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+5230,355-38,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+4827,1706-05,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+4827,1706-05,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+4827,1706-05,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+4827,1706-05,dead_stock,T,seasonal_naive,1.0,1.0,1.0,7.33,7.33,1.3626,1.0219,7.33,1.0,False,False,False,False
+4827,1706-05,dead_stock,T,croston,1.0,1.0,1.0,66.0,88.0,12.2634,12.2634,88.0,1.0,False,False,False,False
+4827,1706-05,dead_stock,T,ses,1.0,1.0,1.0,0.1,0.14,0.0189,0.0189,0.14,1.0,False,False,False,False
+4827,1706-05,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+4827,1706-05,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+4827,1706-05,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,croston,1.0,1.0,1.0,29.36,39.14,14.6129,14.6129,39.14,1.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,ses,1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10430,Lee Cooper Ladies 3 Hands Fn Silver&Blue (LC07824.380),dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+6114,366-26,dead_stock,T,previous_month,2.0,2.5,3.0,5.0,6.0,1.2351,1.1116,2.0,2.8,True,False,False,False
+6114,366-26,dead_stock,T,moving_average_3,2.3333,2.2037,2.6049,4.41,5.21,1.0887,0.9652,2.79,2.4444,False,False,False,False
+6114,366-26,dead_stock,T,moving_average_6,2.0,1.912,2.2307,3.82,4.46,0.9446,0.8265,3.54,2.1032,False,False,False,False
+6114,366-26,dead_stock,T,seasonal_naive,1.0,1.0,1.0,2.0,2.0,0.494,0.3705,-2.0,1.0,False,True,True,True
+6114,366-26,dead_stock,T,croston,2.0142,1.7592,2.0444,3.52,4.09,0.8691,0.7575,4.09,1.9303,False,False,False,False
+6114,366-26,dead_stock,T,ses,1.5258,1.45,1.6,2.9,3.2,0.7164,0.5928,0.98,1.54,False,False,False,False
+6114,366-26,dead_stock,T,trimmed_mean_3,1.0,1.0,1.0,2.0,2.0,0.494,0.3705,-2.0,1.0,False,False,False,False
+6114,366-26,dead_stock,T,winsorized_mean_3,1.0,1.0,1.0,2.0,2.0,0.494,0.3705,-2.0,1.0,False,False,False,False
+6114,366-26,dead_stock,T,median_baseline,1.0,1.0,1.0,2.0,2.0,0.494,0.3705,-2.0,1.0,False,False,False,False
+1595,201-55,intermittent,T,previous_month,0.881,0.879,1.0186,46.0,72.83,1.9458,2.3107,-19.5,0.9628,False,False,False,False
+1595,201-55,intermittent,T,moving_average_3,0.9067,0.7377,0.7992,38.6,57.14,1.633,1.8128,-35.43,0.7746,False,False,False,False
+1595,201-55,intermittent,T,moving_average_6,0.7937,0.7199,0.7727,37.67,55.25,1.5936,1.7527,-49.34,0.7516,False,False,False,False
+1595,201-55,intermittent,T,seasonal_naive,0.881,0.7898,0.7809,41.33,55.83,1.7484,1.7713,-55.83,0.7845,True,False,False,False
+1595,201-55,intermittent,T,croston,0.8788,0.6367,0.5116,33.32,36.58,1.4094,1.1605,-36.58,0.5616,False,True,True,True
+1595,201-55,intermittent,T,ses,0.8834,0.7355,0.6555,38.49,46.87,1.6282,1.4869,-46.87,0.6875,False,False,False,False
+1595,201-55,intermittent,T,trimmed_mean_3,0.9792,0.8521,0.923,44.59,65.99,1.8863,2.0937,-56.62,0.8946,False,False,False,False
+1595,201-55,intermittent,T,winsorized_mean_3,1.0516,0.8836,0.9556,46.24,68.33,1.956,2.1676,-51.97,0.9268,False,False,False,False
+1595,201-55,intermittent,T,median_baseline,1.0,1.0,1.0,52.33,71.5,2.2137,2.2684,-71.5,1.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+1268,Lisos 21,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,croston,1.0,1.0,1.0,30.0,40.0,25.3852,25.3852,40.0,1.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,ses,1.0,1.0,1.0,0.0,0.0,0.0001,0.0001,0.0,1.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+1268,Lisos 21,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,croston,1.0,1.0,1.0,7.2,9.6,6.3335,6.3335,9.6,1.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,ses,1.0,1.0,1.0,0.0,0.0,0.0004,0.0004,0.0,1.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+9612,Leviotto Women's Sneaker NUDE (LVTW21003),dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,previous_month,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,True,True,True,True
+173,345-99,dead_stock,T,moving_average_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,moving_average_6,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,seasonal_naive,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,croston,1.0,1.0,1.0,24.0,32.0,25.3852,25.3852,32.0,1.0,False,False,False,False
+173,345-99,dead_stock,T,ses,1.0,1.0,1.0,0.0,0.0,0.0001,0.0001,0.0,1.0,False,False,False,False
+173,345-99,dead_stock,T,trimmed_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,winsorized_mean_3,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+173,345-99,dead_stock,T,median_baseline,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,False,False,False,False
+10073,DE-V1-107,dead_stock,T,previous_month,2.0,2.5,3.0,4.58,5.5,0.2396,0.2156,1.83,2.8,True,False,False,False
+10073,DE-V1-107,dead_stock,T,moving_average_3,2.7879,2.2003,2.9338,4.03,5.38,0.2109,0.2109,3.55,2.6404,False,False,False,False
+10073,DE-V1-107,dead_stock,T,moving_average_6,2.4545,2.3316,3.3339,4.27,6.11,0.2234,0.2396,6.11,2.933,False,False,False,False
+10073,DE-V1-107,dead_stock,T,seasonal_naive,1.2727,0.8636,0.8636,1.58,1.58,0.0828,0.0621,-1.08,0.8636,False,True,True,True
+10073,DE-V1-107,dead_stock,T,croston,3.2439,4.2182,5.9576,7.73,10.92,0.4042,0.4282,10.92,5.2618,False,False,False,False
+10073,DE-V1-107,dead_stock,T,ses,3.3458,4.3041,6.0722,7.89,11.13,0.4125,0.4364,11.13,5.365,False,False,False,False
+10073,DE-V1-107,dead_stock,T,trimmed_mean_3,1.0,1.0,1.0,1.83,1.83,0.0958,0.0719,-1.83,1.0,False,False,False,False
+10073,DE-V1-107,dead_stock,T,winsorized_mean_3,1.0,1.0,1.0,1.83,1.83,0.0958,0.0719,-1.83,1.0,False,False,False,False
+10073,DE-V1-107,dead_stock,T,median_baseline,1.0,1.0,1.0,1.83,1.83,0.0958,0.0719,-1.83,1.0,False,False,False,False
+15805,407-29,intermittent,T,previous_month,1.0,1.0,1.0,0.5,0.67,0.0336,0.0336,-0.67,1.0,True,True,True,True
+15805,407-29,intermittent,T,moving_average_3,13.8333,8.7901,8.7901,4.4,5.86,0.2952,0.2952,4.53,8.7901,False,False,False,False
+15805,407-29,intermittent,T,moving_average_6,26.5417,23.3623,21.7545,11.68,14.5,0.7847,0.7307,13.95,22.3976,False,False,False,False
+15805,407-29,intermittent,T,seasonal_naive,6.5,4.3333,4.0,2.17,2.67,0.1455,0.1344,2.67,4.1333,False,False,False,False
+15805,407-29,intermittent,T,croston,57.8298,57.8298,57.8298,28.91,38.55,1.9424,1.9424,38.55,57.8298,False,False,False,False
+15805,407-29,intermittent,T,ses,17.2885,17.2885,17.2885,8.64,11.53,0.5807,0.5807,11.53,17.2885,False,False,False,False
+15805,407-29,intermittent,T,trimmed_mean_3,1.625,1.3646,1.332,0.68,0.89,0.0458,0.0447,-0.45,1.3451,False,False,False,False
+15805,407-29,intermittent,T,winsorized_mean_3,1.8333,1.5864,1.5633,0.79,1.04,0.0533,0.0525,-0.29,1.5725,False,False,False,False
+15805,407-29,intermittent,T,median_baseline,1.0,1.0,1.0,0.5,0.67,0.0336,0.0336,-0.67,1.0,False,False,False,False
+13277,401-06,intermittent,T,previous_month,1.913,1.5593,1.525,30.67,40.67,0.8545,0.8498,6.67,1.5387,False,False,False,False
+13277,401-06,intermittent,T,moving_average_3,1.5797,1.1249,0.8395,22.12,22.39,0.6164,0.4678,15.03,0.9537,False,False,False,False
+13277,401-06,intermittent,T,moving_average_6,1.4928,0.565,0.6089,11.11,16.24,0.3096,0.3393,12.94,0.5913,False,False,False,False
+13277,401-06,intermittent,T,seasonal_naive,1.087,0.9915,0.7375,19.5,19.67,0.5433,0.411,-17.33,0.8391,False,False,False,False
+13277,401-06,intermittent,T,croston,1.384,0.5271,0.4341,10.37,11.57,0.2888,0.2419,6.77,0.4713,True,True,False,False
+13277,401-06,intermittent,T,ses,1.3486,0.546,0.3645,10.74,9.72,0.2992,0.2031,2.82,0.4371,False,False,True,True
+13277,401-06,intermittent,T,trimmed_mean_3,1.2174,0.6907,0.7453,13.58,19.88,0.3785,0.4153,-18.79,0.7235,False,False,False,False
+13277,401-06,intermittent,T,winsorized_mean_3,1.2609,0.6384,0.7701,12.56,20.53,0.3498,0.4291,-16.21,0.7174,False,False,False,False
+13277,401-06,intermittent,T,median_baseline,1.0,1.0,1.0,19.67,26.67,0.548,0.5573,-26.67,1.0,False,False,False,False

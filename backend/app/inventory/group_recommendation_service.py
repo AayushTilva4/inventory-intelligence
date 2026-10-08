@@ -1,3 +1,5 @@
+import calendar
+import datetime
 from typing import Any
 
 import pandas as pd
@@ -35,6 +37,11 @@ def _get_group_context(product_id: int) -> dict[str, Any] | None:
 def _base_response(
     group: dict[str, Any],
     group_current_stock: float,
+    group_usable_stock: float = 0.0,
+    group_cut_piece_stock: float = 0.0,
+    group_incoming_stock: float = 0.0,
+    group_committed_stock: float = 0.0,
+    group_inventory_position: float = 0.0,
 ) -> dict[str, Any]:
     return {
         "recommendation_scope": RECOMMENDATION_SCOPE,
@@ -45,10 +52,23 @@ def _base_response(
         "validation_issues": group["validation_issues"],
         "validation_warnings": group["validation_warnings"],
         "group_current_stock": group_current_stock,
+        "group_usable_stock": group_usable_stock,
+        "group_cut_piece_stock": group_cut_piece_stock,
+        "group_incoming_stock": group_incoming_stock,
+        "group_committed_stock": group_committed_stock,
+        "group_inventory_position": group_inventory_position,
         "group_next_month_forecast": None,
+        "group_lead_time_demand": None,
+        "group_review_period_demand": None,
+        "group_forecasted_horizon_demand": None,
         "best_model": None,
         "confidence": None,
         "group_reorder_point": None,
+        "group_safety_stock": None,
+        "group_service_level": None,
+        "group_sigma_error": None,
+        "group_safety_stock_method": None,
+        "group_target_stock": None,
         "group_buffered_target_stock": None,
         "group_stock_gap": None,
         "group_coverage_ratio": None,
@@ -67,10 +87,42 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
         return None
 
     group_current_stock = sum(
-        float(member["current_stock"] or 0.0)
+        float(member.get("current_stock") or 0.0)
         for member in group["group_members"]
     )
-    response = _base_response(group, group_current_stock)
+    group_usable_stock = sum(
+        float(
+            member.get("usable_qty")
+            if member.get("usable_qty") is not None
+            else (member.get("current_stock") or 0.0)
+        )
+        for member in group["group_members"]
+    )
+    group_cut_piece_stock = sum(
+        float(member.get("cut_piece_qty") or 0.0)
+        for member in group["group_members"]
+    )
+    group_incoming_stock = sum(
+        float(member.get("incoming_qty") or 0.0)
+        for member in group["group_members"]
+    )
+    group_committed_stock = sum(
+        float(member.get("outgoing_qty") or 0.0)
+        for member in group["group_members"]
+    )
+    group_inventory_position = (
+        group_usable_stock + group_incoming_stock - group_committed_stock
+    )
+
+    response = _base_response(
+        group,
+        group_current_stock=group_current_stock,
+        group_usable_stock=group_usable_stock,
+        group_cut_piece_stock=group_cut_piece_stock,
+        group_incoming_stock=group_incoming_stock,
+        group_committed_stock=group_committed_stock,
+        group_inventory_position=group_inventory_position,
+    )
 
     if not group["group_valid"]:
         response.update(
@@ -102,28 +154,61 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
 
     load_existing_engine()
     from src.dead_stock import detect_dead_stock, months_since_last_sale
-    from src.reorder import calculate_reorder_point
     from src.trend import detect_trend
 
-    reorder = calculate_reorder_point(sales)
     trend = detect_trend(sales)
     months_without_sale = months_since_last_sale(
         pd.DataFrame({"total_quantity": sales})
     )
     dead_stock = detect_dead_stock(
         group_current_stock,
-        reorder["avg_monthly_demand"],
+        float(forecast.get("next_month_forecast") or 0.0),
         months_without_sale,
+    )
+
+    # ---------------------------------------------------------
+    # Operational Demand Calculation over Lead Time + Review Period
+    # Partial days weighting for current month (Phase 2 Task 5)
+    # ---------------------------------------------------------
+    today = datetime.date.today()
+    d = today.day
+    _, total_days = calendar.monthrange(today.year, today.month)
+    w0 = max(0.0, min(1.0, (total_days - d) / total_days))
+
+    mf = forecast.get("forecast_multistep_values")
+    if not mf or len(mf) < 5:
+        single_fc = float(forecast.get("next_month_forecast") or 0.0)
+        mf = [single_fc] * 5
+
+    group_lead_time_demand = (w0 * mf[0]) + mf[1] + mf[2] + ((1.0 - w0) * mf[3])
+    group_review_period_demand = (w0 * mf[3]) + ((1.0 - w0) * mf[4])
+    group_forecasted_horizon_demand = group_lead_time_demand + group_review_period_demand
+
+    from app.forecasting.benchmark_v2.classification import classify_demand_pattern
+    from app.inventory.safety_stock_service import compute_historical_forecast_error
+
+    group_pattern = classify_demand_pattern(sales, stock_on_hand=group_current_stock)["pattern"]
+    group_sigma_error, _ = compute_historical_forecast_error(
+        sales,
+        model_name=forecast.get("best_model") or "trimmed_mean_3",
     )
 
     recommendation = build_recommendation(
         {
             "next_month_forecast": forecast["next_month_forecast"],
+            "lead_time_demand": group_lead_time_demand,
+            "review_period_demand": group_review_period_demand,
+            "forecasted_horizon_demand": group_forecasted_horizon_demand,
             "stock_on_hand": group_current_stock,
-            "reorder_point": reorder["reorder_point"],
+            "usable_stock": group_usable_stock,
+            "cut_piece_stock": group_cut_piece_stock,
+            "incoming_stock": group_incoming_stock,
+            "committed_stock": group_committed_stock,
             "confidence": forecast["confidence"],
             "trend": trend["trend"],
             "dead_stock": dead_stock["dead_stock"],
+            "demand_pattern": group_pattern,
+            "sigma_error": group_sigma_error,
         }
     )
 
@@ -131,9 +216,19 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
         {
             "status": "ok",
             "group_next_month_forecast": forecast["next_month_forecast"],
+            "group_lead_time_demand": recommendation["lead_time_demand"],
+            "group_review_period_demand": recommendation["review_period_demand"],
+            "group_forecasted_horizon_demand": recommendation[
+                "forecasted_horizon_demand"
+            ],
             "best_model": forecast["best_model"],
             "confidence": forecast["confidence"],
             "group_reorder_point": recommendation["reorder_point"],
+            "group_safety_stock": recommendation["safety_stock"],
+            "group_service_level": recommendation.get("service_level"),
+            "group_sigma_error": recommendation.get("sigma_error_1m"),
+            "group_safety_stock_method": recommendation.get("safety_stock_method"),
+            "group_target_stock": recommendation["target_stock"],
             "group_buffered_target_stock": recommendation[
                 "buffered_target_stock"
             ],
@@ -142,6 +237,7 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
             "group_suggested_purchase_qty": recommendation[
                 "suggested_purchase_qty"
             ],
+            "group_inventory_position": recommendation["inventory_position"],
             "action": recommendation["action"],
             "priority": recommendation["priority"],
             "reason_codes": recommendation["reason_codes"],

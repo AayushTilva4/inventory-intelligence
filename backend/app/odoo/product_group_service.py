@@ -115,8 +115,8 @@ def _get_group_members(
                 COALESCE(stock.usable_qty, 0) AS usable_qty,
                 COALESCE(stock.cut_piece_qty, 0) AS cut_piece_qty,
                 COALESCE(inc.incoming_qty, 0) AS incoming_qty,
-                COALESCE(out.outgoing_qty, 0) AS outgoing_qty,
-                (COALESCE(stock.current_stock, 0) + COALESCE(inc.incoming_qty, 0) - COALESCE(out.outgoing_qty, 0)) AS forecasted_stock
+                (COALESCE(stock.usable_qty, 0) + COALESCE(inc.incoming_qty, 0) - COALESCE(out.outgoing_qty, 0)) AS forecasted_stock,
+                (COALESCE(stock.usable_qty, 0) + COALESCE(inc.incoming_qty, 0) - COALESCE(out.outgoing_qty, 0)) AS inventory_position
             FROM product_template pt
             JOIN product_product pp ON pp.product_tmpl_id = pt.id
             LEFT JOIN stock_summary stock ON stock.product_id = pp.id

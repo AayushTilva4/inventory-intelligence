@@ -47,21 +47,17 @@ def persisted_main_products():
         if forecast is None:
             continue
 
-        members = get_group_members(template_id)
-        group_usable = sum(float(m.get("usable_qty") or 0.0) for m in members) if members else None
-        group_cut_piece = sum(float(m.get("cut_piece_qty") or 0.0) for m in members) if members else None
-        group_forecasted = sum(float(m.get("forecasted_stock") or 0.0) for m in members) if members else None
-
+        curr_stock = recommendation.get("group_current_stock")
         results.append(
             {
                 "main_product_template_id": template_id,
                 "main_product_name": recommendation["main_product_name"],
                 "group_size": recommendation["group_size"],
                 "group_valid": recommendation["group_valid"],
-                "group_current_stock": recommendation["group_current_stock"],
-                "group_usable_qty": group_usable,
-                "group_cut_piece_qty": group_cut_piece,
-                "group_forecasted_stock": group_forecasted,
+                "group_current_stock": curr_stock,
+                "group_usable_qty": curr_stock,
+                "group_cut_piece_qty": 0.0,
+                "group_forecasted_stock": curr_stock,
                 "group_next_month_forecast": recommendation[
                     "group_next_month_forecast"
                 ],
@@ -77,8 +73,8 @@ def persisted_main_products():
                 ],
                 "action": recommendation["action"],
                 "priority": recommendation["priority"],
-                "approval_status": recommendation["approval_status"],
-                "forecast_status": forecast["forecast_status"],
+                "approval_status": recommendation.get("approval_status", "pending"),
+                "forecast_status": forecast.get("forecast_status", "active_group"),
                 "recommendation_scope": "canonical_main_product_group",
                 "forecast_scope": "canonical_main_product_group_total_demand",
             }

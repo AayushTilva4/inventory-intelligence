@@ -9,7 +9,7 @@ from app.odoo.product_group_service import get_group_members
 
 TEST_SIZE = 6
 SEASON_LENGTH = 12
-MINIMUM_HISTORY = TEST_SIZE + SEASON_LENGTH + 1
+MINIMUM_HISTORY = 6
 
 
 def _finite_number(value: Any, digits: int | None = None) -> float | None:
@@ -50,10 +50,8 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
         return None
 
     group_history = demand["months"]
-    sales = pd.Series(
-        [month["actual"] for month in group_history],
-        dtype=float,
-    ).reset_index(drop=True)
+    from app.odoo.stockout_service import build_corrected_demand_series
+    sales = build_corrected_demand_series(group_history)
     group_members = get_group_members(
         int(demand["main_product_template_id"])
     )
@@ -81,66 +79,114 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
     }
 
     if len(sales) < MINIMUM_HISTORY:
+        result["confidence"] = "low"
+        result["confidence_reason"] = "insufficient_group_history"
         _group_forecast_cache[product_id] = result
         return result
 
     load_existing_engine()
+    # pyrefly: ignore [missing-import]
     from src.evaluation import pick_best_model, run_walk_forward
     from app.forecasting.benchmark_v2.models import forecast_multistep
 
+    n = len(sales)
+    if n >= 12:
+        eval_test_size = TEST_SIZE
+        eval_season_length = SEASON_LENGTH
+    else:
+        eval_test_size = min(3, max(1, n // 2))
+        eval_season_length = 1
+
     evaluation = run_walk_forward(
         sales,
-        test_size=TEST_SIZE,
-        season_length=SEASON_LENGTH,
+        test_size=eval_test_size,
+        season_length=eval_season_length,
     )
     evaluation_df = evaluation["evaluation"]
 
     future_months = _get_next_months(
         group_history[-1]["month"] if group_history else None,
-        3,
+        5,
     )
 
     if evaluation_df.empty:
         mean_val = round(float(sales.mean()), 1)
         result["status"] = "all_models_failed"
+        result["confidence"] = "low"
+        result["confidence_reason"] = "all_models_failed"
         result["next_month_forecast"] = mean_val
         result["forecast_3_months"] = [
-            {"month": m, "forecast": mean_val} for m in future_months
+            {"month": m, "forecast": mean_val} for m in future_months[:3]
         ]
+        result["forecast_multistep_values"] = [mean_val] * 5
         _group_forecast_cache[product_id] = result
         return result
 
-    best, _ = pick_best_model(evaluation_df)
-    if best is None:
-        mean_val = round(float(sales.mean()), 1)
-        result["status"] = "no_valid_metric"
-        result["next_month_forecast"] = mean_val
-        result["forecast_3_months"] = [
-            {"month": m, "forecast": mean_val} for m in future_months
-        ]
-        _group_forecast_cache[product_id] = result
-        return result
+    from app.forecasting.model_selection import select_best_model_operational
 
-    best_model = str(best["model"])
+    is_dead = float(sales.sum()) == 0
+    selection = select_best_model_operational(
+        sales=sales,
+        dead_stock=is_dead,
+        max_origins=6,
+        max_horizon=4,
+    )
+    best_model = selection["best_model"]
+
     try:
-        multi_forecast = forecast_multistep(best_model, sales, max_horizon=3)
+        multi_forecast = forecast_multistep(best_model, sales, max_horizon=5)
         next_month_forecast = float(multi_forecast[0])
     except Exception:
-        multi_forecast = [float(sales.mean())] * 3
+        multi_forecast = [float(sales.mean())] * 5
         next_month_forecast = float(sales.mean())
+
+    from app.forecasting.confidence import (
+        calculate_forecast_error_metrics,
+        classify_forecast_confidence,
+    )
 
     train = evaluation["train"]
     test = evaluation["test"]
-    mase = best["MASE"]
-    confidence = (
-        "trivial_zero" if test.sum() == 0 and train.sum() > 0
-        else "low" if pd.notna(mase) and mase > 1.0
-        else "normal"
+    predictions = evaluation.get("predictions", {})
+    if best_model in predictions:
+        best_preds = predictions[best_model]
+    else:
+        best_preds = []
+        hist = train.copy()
+        for actual_val in test:
+            try:
+                pred = forecast_multistep(best_model, hist, max_horizon=1)[0]
+            except Exception:
+                pred = float(hist.mean()) if not hist.empty else 0.0
+            best_preds.append(pred)
+            hist = pd.concat([hist, pd.Series([actual_val])], ignore_index=True)
+
+    metrics = calculate_forecast_error_metrics(
+        actual=test,
+        forecast=best_preds,
+        train=train,
+        season_length=eval_season_length,
+    )
+
+    wape_val = metrics["wape"]
+    mase_val = metrics["mase"]
+
+    confidence, confidence_reason = classify_forecast_confidence(
+        wape=wape_val,
+        mase=mase_val,
+        observation_count=metrics["observation_count"],
+        actual_sum=metrics["actual_sum"],
+        forecast_sum=metrics["forecast_sum"],
+        is_sparse=(n < 12),
+        dead_stock=is_dead,
     )
 
     forecast_3_months = [
         {"month": m, "forecast": round(float(fc), 1)}
-        for m, fc in zip(future_months, multi_forecast)
+        for m, fc in zip(future_months[:3], multi_forecast[:3])
+    ]
+    forecast_multistep_values = [
+        round(float(fc), 2) for fc in multi_forecast
     ]
 
     result.update(
@@ -148,11 +194,18 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
             "status": "ok",
             "next_month_forecast": round(float(next_month_forecast), 1),
             "forecast_3_months": forecast_3_months,
+            "forecast_multistep_values": forecast_multistep_values,
             "best_model": best_model,
             "confidence": confidence,
-            "mae": _finite_number(best["MAE"], 2),
-            "wape": _finite_number(best["WAPE"], 4),
-            "mase": _finite_number(mase, 4),
+            "confidence_reason": confidence_reason,
+            "mae": _finite_number(metrics.get("mae"), 2),
+            "wape": _finite_number(wape_val, 4),
+            "mase": _finite_number(mase_val, 4),
+            "rmse": _finite_number(metrics.get("rmse"), 2),
+            "bias": _finite_number(metrics.get("bias"), 2),
+            "underforecast_rate": _finite_number(metrics.get("underforecast_rate"), 4),
+            "overforecast_rate": _finite_number(metrics.get("overforecast_rate"), 4),
+            "evaluation_observations": metrics.get("observation_count"),
         }
     )
     _group_forecast_cache[product_id] = result

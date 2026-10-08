@@ -60,6 +60,7 @@ def _get_global_last_sales_month(connection) -> Any:
             SELECT MAX(date_trunc('month', date_order))::date
             FROM sale_order
             WHERE state = 'sale'
+              AND date_order < date_trunc('month', CURRENT_DATE)
             """
         )
     ).scalar()
@@ -96,10 +97,11 @@ def get_group_monthly_demand(
                 WITH group_monthly AS (
                     SELECT
                         date_trunc('month', so.date_order)::date AS month,
-                        SUM(sol.qty_delivered) AS actual
+                        SUM(sol.product_uom_qty) AS actual
                     FROM sale_order_line sol
                     JOIN sale_order so ON so.id = sol.order_id
                     WHERE so.state = 'sale'
+                      AND so.date_order < date_trunc('month', CURRENT_DATE)
                       AND sol.product_id IS NOT NULL
                       AND sol.display_type IS NULL
                       AND sol.main_product = :main_product_template_id
@@ -135,10 +137,18 @@ def get_group_monthly_demand(
             },
         ).mappings().all()
 
-    months = [
+    raw_months = [
         {"month": row["month"], "actual": float(row["actual"])}
         for row in rows
     ]
+    from app.odoo.stockout_service import classify_group_monthly_stockouts
+    with engine.connect() as connection:
+        months = classify_group_monthly_stockouts(
+            main_product_template_id=main_product["id"],
+            months=raw_months,
+            connection=connection,
+        )
+
     total_demand = float(
         sum((row["actual"] for row in rows), Decimal("0"))
     )
@@ -149,6 +159,7 @@ def get_group_monthly_demand(
         "months": months,
         "total_demand": total_demand,
         "months_with_demand": sum(row["actual"] > 0 for row in rows),
+        "stockout_months_count": sum(1 for m in months if m.get("is_stockout")),
     }
     _group_demand_cache[main_product_template_id] = result
     return result

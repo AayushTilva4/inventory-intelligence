@@ -1,0 +1,51 @@
+snapshot_id,main_product_template_id,main_product_name,stock_on_hand,usable_stock,cut_piece_stock,incoming_stock,committed_stock,inventory_position,next_month_forecast,reorder_point,buffered_target_stock,stock_gap,coverage_ratio,suggested_purchase_qty,action,confidence,best_model
+task4_before,386,337-41,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0,hold,trivial_zero,previous_month
+task4_before,491,335-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0,hold,trivial_zero,previous_month
+task4_before,909,321-07,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0,hold,,
+task4_before,3732,906-01,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,,0,hold,,
+task4_before,9561,391-03,2053.4,2014.0,39.4,0.0,0.0,2053.4,136.0,349.4,384.34,0.0,5.343,0,excess_stock,normal,moving_average_3
+task4_before,16743,413-12,1890.0,1875.0,15.0,0.0,0.0,1890.0,0.0,79.3,87.23,0.0,21.667,0,excess_stock,normal,previous_month
+task4_before,16742,413-11,0.0,0.0,0.0,1054.0,0.0,0.0,0.0,24.7,27.17,27.17,0.0,28,purchase,normal,previous_month
+task4_before,6620,379-03,107.4,49.4,58.0,804.2,0.0,107.4,169.1,579.3,637.23,529.83,0.169,530,purchase,normal,exponential_smoothing
+task4_before,16749,413-17,3459.0,3420.5,38.5,0.0,0.0,3459.0,21.3,60.0,66.0,0.0,52.409,0,excess_stock,low,croston
+task4_before,1475,White Black Out,345.0,345.0,0.0,0.0,0.0,345.0,0.0,433.3,476.63,131.63,0.724,132,purchase,normal,exponential_smoothing
+task4_before,9119,385-02,1319.4,1304.4,15.0,8.0,0.0,1319.4,0.0,3.0,3.3,0.0,399.818,0,excess_stock,normal,previous_month
+task4_before,16740,413-09,1352.5,1279.5,73.0,0.0,0.0,1352.5,5.1,52.0,57.2,0.0,23.645,0,excess_stock,normal,exponential_smoothing
+task4_before,16773,414-11,268.0,239.5,28.5,0.0,0.0,268.0,202.0,708.0,778.8,510.8,0.344,511,purchase,normal,croston
+task4_before,10673,393-03,624.6,566.8,57.8,314.40000000000003,0.0,624.6,66.9,476.3,523.93,0.0,1.192,0,hold,normal,moving_average_3
+task4_before,9563,391-05,321.5,273.0,48.5,0.0,0.0,321.5,556.5,833.7,917.07,595.57,0.351,596,review,low,seasonal_naive
+task4_before,16763,414-01,262.5,180.0,82.5,0.0,0.0,262.5,148.4,593.6,652.96,390.46,0.402,391,purchase,normal,croston
+task4_before,405,338-13,422.9,362.9,60.0,0.0,0.0,422.9,0.0,72.7,79.97,0.0,5.288,0,excess_stock,normal,previous_month
+task4_before,9560,391-02,1485.3,1410.3,75.0,0.0,0.0,1485.3,79.5,451.0,496.1,0.0,2.994,0,excess_stock,normal,moving_average_3
+task4_before,6623,379-06,803.7,758.6,45.1,2469.7000000000003,0.0,803.7,70.7,141.3,155.43,0.0,5.171,0,excess_stock,normal,moving_average_3
+task4_before,19136,436-03,2539.0,2480.0,59.0,0.0,0.0,2539.0,0.0,6.7,7.37,0.0,344.505,0,excess_stock,normal,seasonal_naive
+task4_before,6626,379-09,88.6,46.8,41.8,0.0,0.0,88.6,322.5,373.3,410.63,322.03,0.216,323,purchase,normal,exponential_smoothing
+task4_before,10675,393-05,821.37,746.77,74.6,989.2,0.0,821.37,0.0,187.0,205.7,0.0,3.993,0,excess_stock,normal,previous_month
+task4_before,396,338-04,975.9,919.9,56.0,0.0,0.0,975.9,48.3,331.3,364.43,0.0,2.678,0,excess_stock,normal,moving_average_3
+task4_before,19159,0015 Blue & White Small stripe,111.0,111.0,0.0,0.0,0.0,111.0,0.0,0.0,0.0,0.0,,0,dead_stock,,
+task4_before,7341,384-09,84.6,73.6,11.0,165.9,0.0,84.6,0.0,0.0,0.0,0.0,,0,dead_stock,trivial_zero,previous_month
+task4_before,1542,201-01,3311.5,3221.0,90.5,0.0,0.0,3311.5,0.0,163.7,180.07,0.0,18.39,0,excess_stock,normal,previous_month
+task4_before,16750,413-18,1193.0,1143.0,50.0,0.0,0.0,1193.0,83.5,171.7,188.87,0.0,6.317,0,excess_stock,low,seasonal_naive
+task4_before,9571,391-13,1318.55,1271.15,47.4,0.0,0.0,1318.55,321.5,365.7,402.27,0.0,3.278,0,excess_stock,normal,seasonal_naive
+task4_before,16738,413-07,1330.4,1291.5,38.9,0.0,0.0,1330.4,0.0,67.3,74.03,0.0,17.971,0,excess_stock,normal,exponential_smoothing
+task4_before,9573,391-15,783.0,769.0,14.0,0.0,0.0,783.0,117.0,202.0,222.2,0.0,3.524,0,excess_stock,low,croston
+task4_before,16748,413-16,2074.0,1996.0,78.0,0.0,0.0,2074.0,2.1,23.3,25.63,0.0,80.921,0,excess_stock,normal,exponential_smoothing
+task4_before,10676,393-06,323.2,271.5,51.7,0.0,0.0,323.2,56.3,260.7,286.77,0.0,1.127,0,hold,normal,moving_average_3
+task4_before,1562,201-21 CC,718.0,582.5,135.5,1398.0,0.0,718.0,22.7,180.3,198.33,0.0,3.62,0,excess_stock,normal,moving_average_3
+task4_before,16765,414-03,1761.5,1722.0,39.5,0.0,0.0,1761.5,0.0,0.0,0.0,0.0,,0,hold,normal,previous_month
+task4_before,1544,201-03,313.95,194.5,119.45,1436.0,0.0,313.95,0.0,159.3,175.23,0.0,1.792,0,hold,normal,previous_month
+task4_before,1543,201-02,2253.5,2102.5,151.0,0.0,0.0,2253.5,0.0,120.0,132.0,0.0,17.072,0,excess_stock,normal,previous_month
+task4_before,1545,201-04,1486.5,1383.5,103.0,1373.0,0.0,1486.5,0.0,179.0,196.9,0.0,7.55,0,excess_stock,normal,previous_month
+task4_before,16769,414-07,2021.0,2002.0,19.0,0.0,0.0,2021.0,0.0,142.3,156.53,0.0,12.911,0,excess_stock,normal,previous_month
+task4_before,1548,201-07,839.2,748.0,91.2,0.0,0.0,839.2,0.0,343.3,377.63,0.0,2.222,0,excess_stock,normal,previous_month
+task4_before,484,336-27,136.0,108.0,28.0,0.0,0.0,136.0,97.7,279.3,307.23,171.23,0.443,172,purchase,normal,croston
+task4_before,1476,Offwhite Black Out,0.0,0.0,0.0,0.0,0.0,0.0,0.0,206.7,227.37,227.37,0.0,228,purchase,normal,moving_average_3
+task4_before,10685,393-15,67.5,57.6,9.9,809.6,0.0,67.5,56.3,260.7,286.77,219.27,0.235,220,purchase,normal,moving_average_3
+task4_before,16844,410-07,2209.5,2192.0,17.5,908.0,0.0,2209.5,17.3,71.0,78.1,0.0,28.291,0,excess_stock,normal,moving_average_3
+task4_before,16954,415-44,1924.5,1876.6,47.9,0.0,0.0,1924.5,35.7,113.3,124.63,0.0,15.442,0,excess_stock,normal,moving_average_3
+task4_before,16922,413-39,1914.4,1811.4,103.0,0.0,0.0,1914.4,0.0,231.0,254.1,0.0,7.534,0,excess_stock,normal,exponential_smoothing
+task4_before,7353,384-21,461.6,442.1,19.5,341.2,0.0,461.6,613.5,297.3,327.03,0.0,1.411,0,hold,normal,seasonal_naive
+task4_before,1584,201-44,2297.0,2264.75,32.25,0.0,0.0,2297.0,42.2,125.8,138.38,0.0,16.599,0,excess_stock,normal,moving_average_3
+task4_before,10684,393-14,433.1,413.6,19.5,1826.0,0.0,433.1,0.0,187.0,205.7,0.0,2.105,0,excess_stock,normal,previous_month
+task4_before,10672,393-02,261.3,214.7,46.6,0.0,0.0,261.3,81.9,272.7,299.97,38.67,0.871,39,purchase,normal,croston
+task4_before,16771,414-09,1068.5,1012.0,56.5,0.0,0.0,1068.5,16.0,66.7,73.37,0.0,14.563,0,excess_stock,normal,moving_average_3
