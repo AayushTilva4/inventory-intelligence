@@ -160,8 +160,13 @@ def calculate_error_based_safety_stock(
             "z_score": 0.0,
             "sigma_error_1m": 0.0,
             "sigma_horizon": 0.0,
+            "horizon_scale_factor": 2.0,
+            "raw_safety_stock": 0.0,
+            "cap_applied": False,
+            "cap_value": 0.0,
             "safety_stock_method": "dead_stock" if dead_stock else "zero_forecast",
             "fallback_used": False,
+            "dead_stock_safeguard": True,
         }
 
     pat = str(demand_pattern or "normal").lower()
@@ -188,6 +193,7 @@ def calculate_error_based_safety_stock(
 
     # Outlier safety cap to prevent unrealistic buffers
     max_cap = max(fc * cap_factor, 10.0)
+    cap_applied = raw_ss > max_cap
     safety_stock = round(max(0.0, min(raw_ss, max_cap)), 4)
 
     return {
@@ -196,6 +202,11 @@ def calculate_error_based_safety_stock(
         "z_score": round(z, 4),
         "sigma_error_1m": round(sigma_1m, 4),
         "sigma_horizon": round(sigma_horizon, 4),
+        "horizon_scale_factor": round(horizon_scale_factor, 4),
+        "raw_safety_stock": round(raw_ss, 4),
+        "cap_applied": cap_applied,
+        "cap_value": round(max_cap, 4),
         "safety_stock_method": method,
         "fallback_used": fallback_used,
+        "dead_stock_safeguard": False,
     }

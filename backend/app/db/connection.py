@@ -1,13 +1,22 @@
 import os
+from typing import Optional
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 
 
 load_dotenv()
 
+_poc_engine: Optional[Engine] = None
+_odoo_engine: Optional[Engine] = None
 
-def get_poc_engine():
+
+def get_poc_engine() -> Engine:
+    """Returns a pooled SQLAlchemy engine connected to the POC application database."""
+    global _poc_engine
+    if _poc_engine is not None:
+        return _poc_engine
+
     host = os.getenv("POC_DB_HOST")
     port = os.getenv("POC_DB_PORT")
     database = os.getenv("POC_DB_NAME")
@@ -34,14 +43,22 @@ def get_poc_engine():
             + ", ".join(missing)
         )
 
-    return create_engine(
-        f"postgresql+psycopg2://{user}:{password}"
-        f"@{host}:{port}/{database}"
+    _poc_engine = create_engine(
+        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}",
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=3600,
+        pool_pre_ping=True,
     )
+    return _poc_engine
 
 
-def get_odoo_engine():
-    """Returns a SQLAlchemy engine connected to the Odoo database. Strictly for READ-ONLY queries."""
+def get_odoo_engine() -> Engine:
+    """Returns a SQLAlchemy engine connected to the Odoo database. Enforces strict read-only transactions."""
+    global _odoo_engine
+    if _odoo_engine is not None:
+        return _odoo_engine
+
     host = os.getenv("ODOO_DB_HOST")
     port = os.getenv("ODOO_DB_PORT")
     database = os.getenv("ODOO_DB_NAME")
@@ -60,6 +77,23 @@ def get_odoo_engine():
     if missing:
         raise RuntimeError("Missing Odoo database configuration: " + ", ".join(missing))
 
-    return create_engine(
-        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+    _odoo_engine = create_engine(
+        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}",
+        connect_args={"options": "-c default_transaction_read_only=on"},
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=3600,
+        pool_pre_ping=True,
     )
+    return _odoo_engine
+
+
+def reset_engines() -> None:
+    """Disposes and resets engine singletons (useful for test isolation)."""
+    global _poc_engine, _odoo_engine
+    if _poc_engine is not None:
+        _poc_engine.dispose()
+        _poc_engine = None
+    if _odoo_engine is not None:
+        _odoo_engine.dispose()
+        _odoo_engine = None

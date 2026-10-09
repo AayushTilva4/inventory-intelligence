@@ -1,8 +1,9 @@
-from datetime import datetime
-from typing import Literal
+import logging
+from typing import Any, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.api.auth import get_current_user
 from app.api.schemas import (
     CreateGroupPoRequest,
     GroupPoResponse,
@@ -19,25 +20,30 @@ from app.db.group_repository import (
 )
 from app.db.repository import create_group_po_for_template
 from app.forecasting.group_forecast_service import get_group_forecast as get_live_group_forecast
+from app.inventory.group_recommendation_service import get_group_recommendation as get_live_group_recommendation
 from app.odoo.product_group_service import (
     get_group_members,
     get_product_group,
 )
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/api/main-products",
     tags=["Main Product Groups"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
+
 @router.get("", response_model=list[MainProductListItem])
-def persisted_main_products():
+def persisted_main_products(run_id: Optional[str] = Query(None, description="Optional planning run ID")):
     forecasts = {
         row["main_product_template_id"]: row
-        for row in get_all_group_forecasts()
+        for row in get_all_group_forecasts(run_id=run_id)
     }
-    recommendations = get_all_group_recommendations()
+    recommendations = get_all_group_recommendations(run_id=run_id)
 
     priority_order = {"high": 0, "medium": 1, "low": 2}
     results = []
@@ -89,19 +95,23 @@ def persisted_main_products():
     )
 
 
-_detail_cache: dict[int, dict[str, Any]] = {}
+_detail_cache: dict[tuple[int, Optional[str]], dict[str, Any]] = {}
 
 
 @router.get(
     "/{main_product_template_id}",
     response_model=MainProductDetailResponse,
 )
-def persisted_main_product_detail(main_product_template_id: int):
-    if main_product_template_id in _detail_cache:
-        return _detail_cache[main_product_template_id]
+def persisted_main_product_detail(
+    main_product_template_id: int,
+    run_id: Optional[str] = Query(None, description="Optional planning run ID"),
+):
+    cache_key = (main_product_template_id, run_id)
+    if cache_key in _detail_cache:
+        return _detail_cache[cache_key]
 
-    db_forecast = get_db_group_forecast(main_product_template_id)
-    recommendation = get_group_recommendation(main_product_template_id)
+    db_forecast = get_db_group_forecast(main_product_template_id, run_id=run_id)
+    recommendation = get_group_recommendation(main_product_template_id, run_id=run_id)
     if db_forecast is None or recommendation is None:
         raise HTTPException(
             status_code=404,
@@ -110,6 +120,7 @@ def persisted_main_product_detail(main_product_template_id: int):
                 f"{main_product_template_id}"
             ),
         )
+
 
     step1_members = get_group_members(main_product_template_id)
     if not step1_members:
@@ -155,6 +166,12 @@ def persisted_main_product_detail(main_product_template_id: int):
     db_forecast["forecast_scope"] = "canonical_main_product_group_total_demand"
     db_forecast["forecast_3_months"] = forecast_3_months
     recommendation["recommendation_scope"] = "canonical_main_product_group"
+
+    # Populate calculation breakdown and zero-purchase explanation from calculation engine
+    live_rec = get_live_group_recommendation(main_product_template_id)
+    if live_rec:
+        recommendation["calculation_breakdown"] = live_rec.get("calculation_breakdown")
+        recommendation["zero_purchase_explanation"] = live_rec.get("zero_purchase_explanation")
 
     group_members_list = live_group["group_members"]
     total_current_stock = sum(float(m.get("current_stock") or 0.0) for m in group_members_list)
@@ -218,17 +235,11 @@ def create_group_purchase_order(
     main_product_template_id: int,
     payload: CreateGroupPoRequest,
 ):
-    try:
-        po_info = create_group_po_for_template(
-            main_product_template_id,
-            payload.quantity,
-        )
-        _detail_cache.pop(main_product_template_id, None)
-        return po_info
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=403,
+        detail="Purchase order creation is disabled in the read-only POC.",
+    )
+
 
 
 @router.get(

@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import AppLayout from "@/components/AppLayout";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AppLayout, { sanitizeErrorMessage } from "@/components/AppLayout";
+import { usePlanningRun } from "@/components/PlanningRunContext";
+import MonthlyDemandChart, { GroupHistoryPoint } from "@/components/MonthlyDemandChart";
+import StockCompositionBar from "@/components/StockCompositionBar";
 
 type MainProductListItem = {
   main_product_template_id: number;
@@ -46,6 +47,70 @@ type MainProductMember = {
 type ForecastStep = {
   month: string;
   forecast: number;
+};
+
+type CalculationBreakdown = {
+  forecast_breakdown?: {
+    lead_time_months?: number;
+    review_period_months?: number;
+    forecast_horizon_months?: number;
+    monthly_forecasts?: number[];
+    monthly_forecast?: number;
+    lead_time_demand?: number;
+    review_period_demand?: number;
+    forecasted_horizon_demand?: number;
+    best_model?: string;
+    selected_model?: string;
+    model_selection_reason?: string;
+    selection_reason?: string;
+    usable_history_months?: number;
+    usable_observations?: number;
+    history_months?: number;
+    confidence?: string;
+    wape?: number;
+    mase?: number;
+    rmse?: number;
+    forecast_warnings?: string[];
+  };
+  safety_stock_breakdown?: {
+    safety_stock_method?: string;
+    service_level?: number;
+    z_score?: number;
+    sigma_error_1m?: number;
+    sigma_horizon?: number;
+    raw_safety_stock?: number;
+    cap_applied?: boolean;
+    cap_value?: number;
+    safety_stock?: number;
+    final_safety_stock?: number;
+    horizon_scale_factor?: number;
+    operational_horizon_months?: number;
+    dead_stock_safeguard?: boolean;
+    lead_time_months?: number;
+    review_period_months?: number;
+  };
+  inventory_position_breakdown?: {
+    stock_on_hand?: number;
+    usable_stock?: number;
+    cut_piece_stock?: number;
+    cut_piece_stock_excluded?: number;
+    incoming_stock?: number;
+    committed_stock?: number;
+    inventory_position?: number;
+    formula?: string;
+  };
+  target_and_purchase_breakdown?: {
+    lead_time_demand?: number;
+    review_period_demand?: number;
+    forecasted_horizon_demand?: number;
+    safety_stock?: number;
+    target_stock?: number;
+    buffered_target_stock?: number;
+    inventory_position?: number;
+    stock_gap?: number;
+    suggested_purchase_qty?: number;
+  };
+  zero_purchase_explanation?: string;
 };
 
 type MainProductDetail = {
@@ -102,7 +167,11 @@ type MainProductDetail = {
     group_size: number;
     group_valid: boolean;
     group_current_stock: number | null;
+    group_forecasted_stock?: number | null;
     group_next_month_forecast: number | null;
+    group_lead_time_demand?: number | null;
+    group_review_period_demand?: number | null;
+    group_forecasted_horizon_demand?: number | null;
     best_model: string | null;
     confidence: string | null;
     group_reorder_point: number | null;
@@ -115,1636 +184,1034 @@ type MainProductDetail = {
     reason_codes: string[];
     validation_issues: string[];
     validation_warnings: string[];
+    dead_stock?: boolean | null;
+    dead_stock_reason?: string | null;
+    forecast_status?: string | null;
     recommendation_status: string;
     approval_status: "pending" | "approved" | "rejected";
+    zero_purchase_explanation?: string | null;
+    calculation_breakdown?: CalculationBreakdown | null;
   };
-};
-
-type GroupHistoryPoint = {
-  month: string;
-  actual: number;
-};
-
-type MemberIntelligence = {
-  forecast?: number | null;
-  confidence?: string | null;
-  bestModel?: string | null;
-  status: "loading" | "loaded" | "unavailable";
-};
-
-type MemberRecommendation = {
-  action: string;
-  priority: string;
-};
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
-function formatNumber(value: number | null | undefined) {
+function formatNumber(value: number | null | undefined, maxFrac = 1) {
   if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: maxFrac }).format(value);
 }
 
-function actionClass(action: string) {
+function actionBadge(action: string) {
   switch (action) {
-    case "purchase": return "border-blue-200 bg-blue-50 text-blue-700";
-    case "review": return "border-amber-200 bg-amber-50 text-amber-700";
-    case "excess_stock": return "border-purple-200 bg-purple-50 text-purple-700";
-    case "dead_stock": return "border-red-200 bg-red-50 text-red-700";
-    default: return "border-slate-200 bg-slate-50 text-slate-700";
+    case "purchase":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "review":
+      return "bg-amber-50 text-amber-800 border-amber-200";
+    case "excess_stock":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    case "dead_stock":
+      return "bg-rose-50 text-rose-700 border-rose-200";
+    case "hold":
+    default:
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
 }
 
-function priorityRowClass(priority: string) {
-  if (priority === "high") return "border-l-4 border-l-red-500 bg-red-50/15 hover:bg-red-50/30";
-  if (priority === "medium") return "border-l-4 border-l-amber-500 bg-amber-50/10 hover:bg-amber-50/25";
-  return "border-l-4 border-l-emerald-500/40 bg-white hover:bg-slate-50";
+function actionLabel(action: string) {
+  switch (action) {
+    case "purchase":
+      return "Needs Purchase";
+    case "review":
+      return "Review Required";
+    case "excess_stock":
+      return "Excess Stock";
+    case "dead_stock":
+      return "Dead Stock";
+    case "hold":
+    default:
+      return "Stock Sufficient";
+  }
 }
-
-function displayLabel(value: string) {
-  return value.replace(/_/g, " ");
-}
-
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const detailCache = new Map<number, MainProductDetail>();
-const groupHistoryCache = new Map<number, GroupHistoryPoint[]>();
-const memberIntelligenceCache = new Map<number, MemberIntelligence>();
 
 export default function MainProductsPage() {
-  const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const { activeEffectiveRun, effectiveRunId } = usePlanningRun();
+
   const [groups, setGroups] = useState<MainProductListItem[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [detail, setDetail] = useState<MainProductDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [groupHistory, setGroupHistory] = useState<GroupHistoryPoint[]>([]);
   const [groupHistoryLoading, setGroupHistoryLoading] = useState(false);
-  const [groupHistoryError, setGroupHistoryError] = useState("");
-  const [recommendationsMap, setRecommendationsMap] = useState<Record<number, MemberRecommendation>>({});
-  const [memberIntelligenceMap, setMemberIntelligenceMap] = useState<Record<number, MemberIntelligence>>({});
+  const [techDetailsExpanded, setTechDetailsExpanded] = useState(false);
 
-  // Filtering & Pagination State
-  const [searchQuery, setSearchQuery] = useState("");
+  // Search with debounce
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("priority");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 50;
-
-  // Secondary Member Product Modal State (Part 1 Routing Fix)
-  const [selectedMemberProductId, setSelectedMemberProductId] = useState<number | null>(null);
-  const [memberDetailData, setMemberDetailData] = useState<any>(null);
-  const [memberDetailLoading, setMemberDetailLoading] = useState(false);
-  const [memberDetailError, setMemberDetailError] = useState("");
-  const [memberHistoryData, setMemberHistoryData] = useState<GroupHistoryPoint[]>([]);
-  const [memberHistoryLoading, setMemberHistoryLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(50);
 
   const requestId = useRef(0);
 
-  const filteredGroups = useMemo(() => {
-    let result = groups;
-    if (activeFilter !== "all") {
-      result = result.filter(g => g.action === activeFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(g =>
-        g.main_product_name.toLowerCase().includes(q) ||
-        String(g.main_product_template_id).includes(q)
-      );
-    }
-    return result;
-  }, [groups, activeFilter, searchQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / pageSize));
-  const paginatedGroups = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredGroups.slice(start, start + pageSize);
-  }, [filteredGroups, currentPage, pageSize]);
-
-  const handleLogout = useCallback(() => {
-    sessionStorage.removeItem("auth_token");
-    sessionStorage.removeItem("user");
-    router.push("/login");
-  }, [router]);
-
+  // Lock body scroll when modal is open
   useEffect(() => {
-    const storedToken = sessionStorage.getItem("auth_token");
-    const storedUser = sessionStorage.getItem("user");
-    if (!storedToken || !storedUser) {
-      router.push("/login");
-      return;
+    if (selectedTemplateId !== null) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
     }
+  }, [selectedTemplateId]);
 
-    try {
-      const parsedUser = JSON.parse(storedUser) as User;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setToken(storedToken);
-      setUser(parsedUser);
-    } catch {
-      router.push("/login");
-    }
-  }, [router]);
+  // Debounce search input (250ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
   const loadGroups = useCallback(async () => {
+    const token = sessionStorage.getItem("auth_token");
     if (!token) return;
-    setListLoading(true);
-    setListError("");
+
     try {
-      const response = await fetch(`${API_BASE}/api/main-products`, {
+      setListLoading(true);
+      setListError("");
+
+      const queryParam = effectiveRunId ? `?run_id=${encodeURIComponent(effectiveRunId)}` : "";
+      const res = await fetch(`${API_BASE}/api/main-products${queryParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to load main-product groups");
-      const data: MainProductListItem[] = await response.json();
-      setGroups(data);
-    } catch (error) {
-      setListError(error instanceof Error ? error.message : "Unable to connect to backend");
+
+      if (!res.ok) {
+        if (res.status === 404 && activeEffectiveRun?.is_pruned) {
+          setGroups([]);
+          setListLoading(false);
+          return;
+        }
+        throw new Error(`Failed to load product groups (HTTP ${res.status})`);
+      }
+
+      const data: MainProductListItem[] = await res.json();
+      setGroups(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : "Unable to load product groups");
     } finally {
       setListLoading(false);
     }
-  }, [token]);
-
-  const loadRecommendations = useCallback(async () => {
-    if (!token) return;
-    try {
-      const response = await fetch(`${API_BASE}/api/inventory/recommendations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        const map: Record<number, MemberRecommendation> = {};
-        for (const item of data) {
-          if (item && item.product_id) {
-            map[item.product_id] = {
-              action: item.action,
-              priority: item.priority,
-            };
-          }
-        }
-        setRecommendationsMap(map);
-      }
-    } catch {
-      // optional enrichment
-    }
-  }, [token]);
+  }, [effectiveRunId, activeEffectiveRun]);
 
   useEffect(() => {
-    if (!token) return;
-    const timeoutId = window.setTimeout(() => {
-      void loadGroups();
-      void loadRecommendations();
-    }, 0);
-    return () => window.clearTimeout(timeoutId);
-  }, [token, loadGroups, loadRecommendations]);
+    loadGroups();
+  }, [loadGroups]);
 
-  const fetchMembersIntelligence = useCallback(async (members: MainProductMember[], currentReqId: number) => {
-    if (!token || members.length === 0) return;
+  // Filtered and Sorted Groups
+  const filteredAndSortedGroups = useMemo(() => {
+    let result = [...groups];
 
-    const initialMap: Record<number, MemberIntelligence> = {};
-    const missingMembers: MainProductMember[] = [];
-
-    for (const member of members) {
-      const cached = memberIntelligenceCache.get(member.product_id);
-      if (cached) {
-        initialMap[member.product_id] = cached;
-      } else {
-        initialMap[member.product_id] = { status: "loading" };
-        missingMembers.push(member);
-      }
+    if (activeFilter !== "all") {
+      result = result.filter((g) => g.action === activeFilter);
     }
-    setMemberIntelligenceMap(initialMap);
 
-    if (missingMembers.length === 0) return;
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase().trim();
+      result = result.filter(
+        (g) =>
+          g.main_product_name.toLowerCase().includes(q) ||
+          String(g.main_product_template_id).includes(q)
+      );
+    }
 
-    const promises = missingMembers.map(async (member) => {
-      try {
-        const response = await fetch(
-          `${API_BASE}/api/forecast/product/${member.product_id}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        if (!response.ok) {
-          const resObj: MemberIntelligence = {
-            forecast: null,
-            confidence: null,
-            bestModel: null,
-            status: "unavailable",
-          };
-          memberIntelligenceCache.set(member.product_id, resObj);
-          return { productId: member.product_id, intelligence: resObj };
-        }
-        const data = await response.json();
-        const resObj: MemberIntelligence = {
-          forecast: data.next_month_forecast,
-          confidence: data.confidence,
-          bestModel: data.best_model,
-          status: "loaded",
-        };
-        memberIntelligenceCache.set(member.product_id, resObj);
-        return { productId: member.product_id, intelligence: resObj };
-      } catch {
-        const resObj: MemberIntelligence = {
-          forecast: null,
-          confidence: null,
-          bestModel: null,
-          status: "unavailable",
-        };
-        memberIntelligenceCache.set(member.product_id, resObj);
-        return { productId: member.product_id, intelligence: resObj };
+    result.sort((a, b) => {
+      if (sortBy === "suggested_qty") {
+        return (b.group_suggested_purchase_qty || 0) - (a.group_suggested_purchase_qty || 0);
       }
+      if (sortBy === "forecast") {
+        return (b.group_next_month_forecast || 0) - (a.group_next_month_forecast || 0);
+      }
+      if (sortBy === "stock_gap") {
+        return (b.group_stock_gap || 0) - (a.group_stock_gap || 0);
+      }
+      if (sortBy === "stock") {
+        return (b.group_current_stock || 0) - (a.group_current_stock || 0);
+      }
+      if (sortBy === "name") {
+        return a.main_product_name.localeCompare(b.main_product_name);
+      }
+      if (sortBy === "template_id") {
+        return a.main_product_template_id - b.main_product_template_id;
+      }
+      // default: priority order
+      const pOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+      const pa = pOrder[a.priority] ?? 3;
+      const pb = pOrder[b.priority] ?? 3;
+      if (pa !== pb) return pa - pb;
+      return (b.group_suggested_purchase_qty || 0) - (a.group_suggested_purchase_qty || 0);
     });
 
-    const results = await Promise.all(promises);
-    if (currentReqId === requestId.current) {
-      setMemberIntelligenceMap(prev => {
-        const next = { ...prev };
-        for (const r of results) {
-          next[r.productId] = r.intelligence;
-        }
-        return next;
-      });
-    }
-  }, [token]);
+    return result;
+  }, [groups, activeFilter, debouncedSearch, sortBy]);
 
-  const openDetail = useCallback(async (templateId: number) => {
-    const currentRequest = ++requestId.current;
-    setSelectedTemplateId(templateId);
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedGroups.length / pageSize));
+  const paginatedGroups = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAndSortedGroups.slice(start, start + pageSize);
+  }, [filteredAndSortedGroups, currentPage, pageSize]);
 
-    const cachedDetail = detailCache.get(templateId);
-    const cachedHistory = groupHistoryCache.get(templateId);
-
-    // 1. Instantly populate safe detail data
-    if (cachedDetail) {
-      setDetail(cachedDetail);
-      setDetailLoading(false);
+  // Open Detail Panel
+  const openDetail = useCallback(
+    async (templateId: number) => {
+      const currentRequest = ++requestId.current;
+      setSelectedTemplateId(templateId);
+      setDetailLoading(true);
       setDetailError("");
-      if (cachedDetail.group && Array.isArray(cachedDetail.group.members)) {
-        void fetchMembersIntelligence(cachedDetail.group.members, currentRequest);
-      }
-    } else {
-      const existingGroup = groups.find(g => g.main_product_template_id === templateId);
-      if (existingGroup) {
-        setDetail({
-          main_product: {
-            template_id: existingGroup.main_product_template_id,
-            name: existingGroup.main_product_name,
-            is_main_similar: true,
-            current_stock: existingGroup.group_current_stock,
-            usable_qty: existingGroup.group_usable_qty,
-            cut_piece_qty: existingGroup.group_cut_piece_qty,
-          },
-          group: {
-            group_valid: existingGroup.group_valid,
-            group_size: existingGroup.group_size,
-            validation_issues: [],
-            validation_warnings: [],
-            persisted_group_valid: existingGroup.group_valid,
-            persisted_validation_issues: [],
-            persisted_validation_warnings: [],
-            total_current_stock: existingGroup.group_current_stock,
-            total_usable_qty: existingGroup.group_usable_qty,
-            total_cut_piece_qty: existingGroup.group_cut_piece_qty,
-            members: [],
-          },
-          forecast: {
-            forecast_scope: existingGroup.forecast_scope,
-            main_product_template_id: existingGroup.main_product_template_id,
-            main_product_name: existingGroup.main_product_name,
-            group_size: existingGroup.group_size,
-            months_available: null,
-            history_start: null,
-            history_end: null,
-            next_month_forecast: existingGroup.group_next_month_forecast,
-            best_model: existingGroup.best_model,
-            confidence: existingGroup.confidence,
-            mae: null,
-            wape: null,
-            mase: null,
-            avg_monthly_demand: null,
-            forecast_status: existingGroup.forecast_status,
-          },
-          recommendation: {
-            recommendation_scope: existingGroup.recommendation_scope,
-            main_product_template_id: existingGroup.main_product_template_id,
-            main_product_name: existingGroup.main_product_name,
-            group_size: existingGroup.group_size,
-            group_valid: existingGroup.group_valid,
-            group_current_stock: existingGroup.group_current_stock,
-            group_next_month_forecast: existingGroup.group_next_month_forecast,
-            best_model: existingGroup.best_model,
-            confidence: existingGroup.confidence,
-            group_reorder_point: existingGroup.group_reorder_point,
-            group_buffered_target_stock: existingGroup.group_buffered_target_stock,
-            group_stock_gap: existingGroup.group_stock_gap,
-            group_coverage_ratio: null,
-            group_suggested_purchase_qty: existingGroup.group_suggested_purchase_qty,
-            action: existingGroup.action,
-            priority: existingGroup.priority,
-            reason_codes: [],
-            validation_issues: [],
-            validation_warnings: [],
-            recommendation_status: "persisted",
-            approval_status: existingGroup.approval_status,
-          },
-        });
-        setDetailLoading(false);
-      } else {
-        setDetail(null);
-        setDetailLoading(true);
-      }
-      setDetailError("");
-    }
-
-    // 2. Instantly populate cached history or show loading
-    if (cachedHistory) {
-      setGroupHistory(cachedHistory);
-      setGroupHistoryLoading(false);
-      setGroupHistoryError("");
-    } else {
       setGroupHistory([]);
       setGroupHistoryLoading(true);
-      setGroupHistoryError("");
-    }
+      setTechDetailsExpanded(false);
 
-    // 3. INDEPENDENT Group Demand History Fetch (with timeout & safety)
-    const historyController = new AbortController();
-    const historyTimeout = setTimeout(() => historyController.abort(), 6000);
+      const token = sessionStorage.getItem("auth_token");
+      if (!token) return;
 
-    fetch(`${API_BASE}/api/products/${templateId}/group/history`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: historyController.signal,
-    })
-      .then(async res => {
-        clearTimeout(historyTimeout);
-        if (!res.ok) throw new Error("Unable to load group demand history");
-        const data = await res.json();
-        const points: GroupHistoryPoint[] = Array.isArray(data)
-          ? data
-          : (Array.isArray(data?.months) ? data.months : []);
-        if (currentRequest === requestId.current) {
-          groupHistoryCache.set(templateId, points);
-          setGroupHistory(points);
-          setGroupHistoryLoading(false);
-          setGroupHistoryError("");
-        }
+      const queryParam = effectiveRunId ? `?run_id=${encodeURIComponent(effectiveRunId)}` : "";
+
+      // 1. Fetch main product detail
+      fetch(`${API_BASE}/api/main-products/${templateId}${queryParam}`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(err => {
-        clearTimeout(historyTimeout);
-        if (currentRequest === requestId.current) {
-          setGroupHistoryLoading(false);
-          if (!cachedHistory) {
-            setGroupHistoryError(
-              err?.name === "AbortError"
-                ? "Group demand history request timed out"
-                : "Unable to load group demand history"
-            );
+        .then(async (res) => {
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.detail || `Failed to load detail (HTTP ${res.status})`);
           }
-        }
-      });
-
-    // 4. INDEPENDENT Main Product Detail Fetch
-    fetch(`${API_BASE}/api/main-products/${templateId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async res => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.detail || "Failed to load main-product detail");
-        }
-        const data = (await res.json()) as MainProductDetail;
-        if (currentRequest === requestId.current) {
-          detailCache.set(templateId, data);
-          setDetail(data);
-          setDetailLoading(false);
-          setDetailError("");
-          if (data.group && Array.isArray(data.group.members)) {
-            void fetchMembersIntelligence(data.group.members, currentRequest);
+          const data: MainProductDetail = await res.json();
+          if (currentRequest === requestId.current) {
+            setDetail(data);
+            setDetailLoading(false);
           }
-        }
-      })
-      .catch(err => {
-        if (currentRequest === requestId.current) {
-          setDetailLoading(false);
-          if (!cachedDetail && !groups.some(g => g.main_product_template_id === templateId)) {
+        })
+        .catch((err) => {
+          if (currentRequest === requestId.current) {
+            setDetailLoading(false);
             setDetailError(err instanceof Error ? err.message : "Unable to load group detail");
           }
-        }
-      });
-  }, [token, groups, fetchMembersIntelligence]);
+        });
+
+      // 2. Fetch live demand history
+      fetch(`${API_BASE}/api/products/${templateId}/group/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error("History unavailable");
+          const data = await res.json();
+          const points: GroupHistoryPoint[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.months)
+            ? data.months
+            : [];
+          if (currentRequest === requestId.current) {
+            setGroupHistory(points);
+            setGroupHistoryLoading(false);
+          }
+        })
+        .catch(() => {
+          if (currentRequest === requestId.current) {
+            setGroupHistoryLoading(false);
+          }
+        });
+    },
+    [effectiveRunId]
+  );
 
   const closeDetail = useCallback(() => {
     requestId.current += 1;
     setSelectedTemplateId(null);
     setDetail(null);
     setDetailError("");
-    setDetailLoading(false);
-    setGroupHistory([]);
-    setGroupHistoryError("");
-    setGroupHistoryLoading(false);
-    setMemberIntelligenceMap({});
   }, []);
-
-  const closeIndividualProduct = useCallback(() => {
-    setSelectedMemberProductId(null);
-    setMemberDetailData(null);
-    setMemberDetailError("");
-    setMemberHistoryData([]);
-  }, []);
-
-  const openIndividualProduct = useCallback((productId: number) => {
-    if (!token) return;
-    setSelectedMemberProductId(productId);
-    setMemberDetailData(null);
-    setMemberDetailError("");
-    setMemberDetailLoading(true);
-    setMemberHistoryData([]);
-    setMemberHistoryLoading(true);
-
-    fetch(`${API_BASE}/api/forecast/product/${productId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(async res => {
-        if (!res.ok) throw new Error("Failed to load product detail");
-        const data = await res.json();
-        setMemberDetailData(data);
-      })
-      .catch(err => {
-        setMemberDetailError(err instanceof Error ? err.message : "Error loading detail");
-      })
-      .finally(() => {
-        setMemberDetailLoading(false);
-      });
-
-    fetch(`${API_BASE}/api/forecast/product/${productId}/history`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(async res => {
-        if (!res.ok) throw new Error("Failed to load product history");
-        const data = await res.json();
-        setMemberHistoryData(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        setMemberHistoryData([]);
-      })
-      .finally(() => {
-        setMemberHistoryLoading(false);
-      });
-  }, [token]);
 
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        if (selectedMemberProductId !== null) {
-          closeIndividualProduct();
-        } else if (selectedTemplateId !== null) {
-          closeDetail();
-        }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && selectedTemplateId !== null) {
+        closeDetail();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedTemplateId, selectedMemberProductId, closeDetail, closeIndividualProduct]);
+  }, [selectedTemplateId, closeDetail]);
 
-  useEffect(() => {
-    if (selectedTemplateId !== null) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [selectedTemplateId]);
+  const cb = detail?.recommendation.calculation_breakdown;
+
+  // Determine whether group has insufficient history (<6 months)
+  const isInsufficientHistory = useMemo(() => {
+    if (!detail) return false;
+    const months = detail.forecast.months_available;
+    return (
+      (months !== null && months !== undefined && months < 6) ||
+      detail.forecast.forecast_status?.includes("insufficient") ||
+      detail.recommendation.forecast_status?.includes("insufficient") ||
+      detail.recommendation.recommendation_status?.includes("insufficient")
+    );
+  }, [detail]);
+
+  const isColdStart = useMemo(() => {
+    if (!detail) return false;
+    return (
+      isInsufficientHistory ||
+      (detail.recommendation.action === "review" &&
+        (detail.recommendation.best_model?.includes("analogue") ||
+          detail.forecast.forecast_status?.includes("cold_start")))
+    );
+  }, [detail, isInsufficientHistory]);
+
+  // Reconciled operational horizon & demand numbers
+  const horizonMonths = cb?.safety_stock_breakdown?.operational_horizon_months ?? 4.0;
+  const leadTimeDemand =
+    cb?.target_and_purchase_breakdown?.lead_time_demand ??
+    detail?.recommendation.group_lead_time_demand ??
+    (detail?.recommendation.group_next_month_forecast !== null && detail?.recommendation.group_next_month_forecast !== undefined
+      ? detail.recommendation.group_next_month_forecast * 3.0
+      : null);
+  const reviewPeriodDemand =
+    cb?.target_and_purchase_breakdown?.review_period_demand ??
+    detail?.recommendation.group_review_period_demand ??
+    (detail?.recommendation.group_next_month_forecast !== null && detail?.recommendation.group_next_month_forecast !== undefined
+      ? detail.recommendation.group_next_month_forecast * 1.0
+      : null);
+  const forecastedHorizonDemand =
+    cb?.target_and_purchase_breakdown?.forecasted_horizon_demand ??
+    cb?.forecast_breakdown?.forecasted_horizon_demand ??
+    detail?.recommendation.group_forecasted_horizon_demand ??
+    (leadTimeDemand !== null && reviewPeriodDemand !== null ? leadTimeDemand + reviewPeriodDemand : null);
+
+  // Reconciled stock breakdown
+  const totalPhysicalStock =
+    detail?.group.total_current_stock ?? detail?.recommendation.group_current_stock ?? 0;
+  const usableStock =
+    cb?.inventory_position_breakdown?.usable_stock ??
+    detail?.group.total_usable_qty ??
+    totalPhysicalStock;
+  const cutPiecesExcluded =
+    cb?.inventory_position_breakdown?.cut_piece_stock_excluded ??
+    detail?.group.total_cut_piece_qty ??
+    0;
+  const incomingStock =
+    cb?.inventory_position_breakdown?.incoming_stock ??
+    detail?.group.total_incoming_qty ??
+    0;
+  const committedStock =
+    cb?.inventory_position_breakdown?.committed_stock ??
+    detail?.group.total_outgoing_qty ??
+    0;
+  const netInventoryPosition =
+    cb?.inventory_position_breakdown?.inventory_position ??
+    (usableStock + incomingStock - committedStock);
+
+  const targetStock =
+    cb?.target_and_purchase_breakdown?.target_stock ??
+    cb?.target_and_purchase_breakdown?.buffered_target_stock ??
+    detail?.recommendation.group_buffered_target_stock;
+
+  const stockGap =
+    cb?.target_and_purchase_breakdown?.stock_gap ??
+    detail?.recommendation.group_stock_gap;
 
   return (
     <AppLayout>
-          <div className="mb-6 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">Main Products &amp; Group Intelligence</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Aggregated demand forecasting and shared stock absorption across {groups.length} canonical groups
-                </p>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative w-full md:w-72">
-                <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search group name or ID..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="block w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                />
-              </div>
-            </div>
-
-            {/* Filter Tabs and Pagination Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-y border-slate-200 py-3">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                {[
-                  { id: "all", label: "All Groups", count: groups.length },
-                  { id: "purchase", label: "Needs Purchase", count: groups.filter(g => g.action === "purchase").length },
-                  { id: "review", label: "Review", count: groups.filter(g => g.action === "review").length },
-                  { id: "excess_stock", label: "Excess Stock", count: groups.filter(g => g.action === "excess_stock").length },
-                  { id: "dead_stock", label: "Dead Stock", count: groups.filter(g => g.action === "dead_stock").length },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveFilter(tab.id);
-                      setCurrentPage(1);
-                    }}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeFilter === tab.id
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-                    }`}
-                  >
-                    {tab.label} ({tab.count})
-                  </button>
-                ))}
-              </div>
-
-              {/* Pagination Info & Controls */}
-              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-slate-600 shrink-0">
-                <span className="font-medium">
-                  {filteredGroups.length === 0 ? "0 groups" : `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, filteredGroups.length)} of ${filteredGroups.length}`}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-2.5 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
-                    aria-label="Previous page"
-                  >
-                    ← Prev
-                  </button>
-                  <span className="px-2 font-bold text-slate-900">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage >= totalPages}
-                    className="px-2.5 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
-                    aria-label="Next page"
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-            </div>
+      <div className="space-y-5 max-w-7xl mx-auto">
+        {/* Header & Controls Bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Main Product Groups Catalogue
+            </h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Multi-member product group catalog with inventory positions, forecasts, and replenishment recommendations.
+            </p>
           </div>
 
-          {listLoading ? (
-            <div className="flex min-h-64 items-center justify-center rounded-xl border border-slate-200 bg-white">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+          {/* Search Input (Debounced) */}
+          <div className="relative w-full md:w-72">
+            <svg
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search product name or ID..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="block w-full rounded-lg border border-slate-300 pl-9 pr-3 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            />
+          </div>
+        </div>
+
+        {/* Improved Responsive Toolbar (No horizontal clipping, wrapping chips, robust flex pagination) */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-y border-slate-200 py-3 bg-white px-3.5 rounded-xl shadow-2xs">
+          {/* Action Filter Chips: Wrap into multiple rows on small screens without scrollbars */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: "all", label: "All Groups", count: groups.length },
+              {
+                id: "purchase",
+                label: "Needs Purchase",
+                count: groups.filter((g) => g.action === "purchase").length,
+              },
+              {
+                id: "review",
+                label: "Review Required",
+                count: groups.filter((g) => g.action === "review").length,
+              },
+              {
+                id: "excess_stock",
+                label: "Excess Stock",
+                count: groups.filter((g) => g.action === "excess_stock").length,
+              },
+              {
+                id: "dead_stock",
+                label: "Dead Stock",
+                count: groups.filter((g) => g.action === "dead_stock").length,
+              },
+              {
+                id: "hold",
+                label: "Stock Sufficient",
+                count: groups.filter((g) => g.action === "hold").length,
+              },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveFilter(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeFilter === tab.id
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Sorting, Page Size, and Aligned Non-Wrapping Pagination */}
+          <div className="flex flex-wrap items-center justify-between xl:justify-end gap-3 text-xs text-slate-600">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none"
+              >
+                <option value="priority">Priority Order</option>
+                <option value="suggested_qty">Suggested Purchase (High → Low)</option>
+                <option value="forecast">1M Forecast (High → Low)</option>
+                <option value="stock_gap">Stock Gap (High → Low)</option>
+                <option value="stock">Current Stock (High → Low)</option>
+                <option value="name">Product Name (A → Z)</option>
+                <option value="template_id">Template ID</option>
+              </select>
             </div>
-          ) : listError ? (
-            <section className="rounded-xl border border-red-200 bg-white p-8 text-center">
-              <h3 className="font-semibold text-slate-900">Could not load main products</h3>
-              <p className="mt-2 text-sm text-red-700">{listError}</p>
-              <button onClick={loadGroups} className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Retry</button>
-            </section>
-          ) : filteredGroups.length === 0 ? (
-            <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
-              <h3 className="font-semibold text-slate-900">No matching product groups found</h3>
-              <p className="mt-2 text-sm text-slate-500">Try adjusting your search query or filter selection.</p>
-            </section>
-          ) : (
-            <>
-              <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3" aria-label="Main products list">
-                {paginatedGroups.map(group => (
-                  <button
-                    key={group.main_product_template_id}
-                    type="button"
-                    onClick={() => void openDetail(group.main_product_template_id)}
-                    className={`group rounded-xl border border-slate-200 p-5 text-left shadow-sm transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${priorityRowClass(group.priority)}`}
-                    aria-label={`Open main product ${group.main_product_name}`}
-                  >
-                    {/* Top Bar: Title, Group Size & Action / Stock breakdown */}
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">Main Product</p>
-                          <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                            ID: {group.main_product_template_id}
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Rows:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 font-medium focus:outline-none"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Pagination Controls with whitespace-nowrap protection */}
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <span className="font-medium text-slate-500 whitespace-nowrap">
+                {filteredAndSortedGroups.length === 0
+                  ? "0 groups"
+                  : `${(currentPage - 1) * pageSize + 1}–${Math.min(
+                      currentPage * pageSize,
+                      filteredAndSortedGroups.length
+                    )} of ${filteredAndSortedGroups.length}`}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-2 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                aria-label="Previous Page"
+              >
+                ←
+              </button>
+              <span className="px-1.5 font-bold text-slate-900 whitespace-nowrap">
+                {currentPage}/{totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-2 py-1 rounded-md border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 transition-colors"
+                aria-label="Next Page"
+              >
+                →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Body: Responsive Scannable Table */}
+        {listLoading ? (
+          <div className="flex min-h-64 items-center justify-center rounded-xl border border-slate-200 bg-white">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+          </div>
+        ) : listError ? (
+          <section className="rounded-xl border border-rose-200 bg-white p-8 text-center">
+            <h3 className="font-semibold text-slate-900">Could not load main products</h3>
+            <p className="mt-2 text-sm text-rose-700">{listError}</p>
+            <button
+              onClick={loadGroups}
+              className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+            >
+              Retry
+            </button>
+          </section>
+        ) : filteredAndSortedGroups.length === 0 ? (
+          <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
+            <h3 className="font-semibold text-slate-900">
+              {activeEffectiveRun?.status === "failed"
+                ? "Planning Run Failed"
+                : "No matching product groups found"}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              {activeEffectiveRun?.is_pruned
+                ? "This planning run's snapshot records have been pruned by retention policy."
+                : activeEffectiveRun?.status === "failed"
+                ? `This planning run failed during execution (${sanitizeErrorMessage(activeEffectiveRun.error_message)}). No group intelligence snapshots were generated.`
+                : "Try adjusting your search query or filter criteria."}
+            </p>
+          </section>
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs">
+                <thead className="bg-slate-50 text-left text-slate-500 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="px-5 py-3">Product Group</th>
+                    <th className="px-3 py-3">Decision</th>
+                    <th className="px-3 py-3 text-right">1M Forecast</th>
+                    <th className="px-3 py-3 text-right">Usable Stock</th>
+                    <th className="px-3 py-3 text-right">Target Stock</th>
+                    <th className="px-4 py-3 text-right">Suggested Purchase</th>
+                    <th className="px-3 py-3 text-center">Priority</th>
+                    <th className="px-4 py-3 text-right">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {paginatedGroups.map((group) => {
+                    const rowInsufficient =
+                      group.forecast_status?.includes("insufficient") ||
+                      (group.group_next_month_forecast === null && group.action === "review");
+                    const hasPurchase = group.group_suggested_purchase_qty > 0;
+                    const usableVal = group.group_usable_qty ?? group.group_current_stock ?? 0;
+                    const cutVal = group.group_cut_piece_qty ?? 0;
+
+                    return (
+                      <tr
+                        key={group.main_product_template_id}
+                        onClick={() => void openDetail(group.main_product_template_id)}
+                        className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                      >
+                        <td className="px-5 py-3">
+                          <div className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
+                            {group.main_product_name}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-400">
+                            <span className="font-mono">ID {group.main_product_template_id}</span>
+                            <span>·</span>
+                            <span>{group.group_size} member{group.group_size === 1 ? "" : "s"}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${actionBadge(
+                              group.action
+                            )}`}
+                          >
+                            {actionLabel(group.action)}
+                          </span>
+                        </td>
+
+                        {/* 1M Forecast: Correctly displays 'Not calculated' for insufficient history */}
+                        <td className="px-3 py-3 text-right font-semibold">
+                          {rowInsufficient ? (
+                            <span
+                              className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200"
+                              title="Insufficient sales history (<6 months); operational forecast not calculated"
+                            >
+                              Not calculated
+                            </span>
+                          ) : (
+                            <span className="text-slate-900">
+                              {formatNumber(group.group_next_month_forecast)} units
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3 text-right font-medium text-slate-800">
+                          <div>{formatNumber(usableVal)} units</div>
+                          {cutVal > 0 && (
+                            <div className="text-[10px] text-slate-400 font-normal">
+                              +{formatNumber(cutVal)} cut
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Target Stock: Displays 'Not calculated' for insufficient history */}
+                        <td className="px-3 py-3 text-right text-slate-700 font-medium">
+                          {rowInsufficient || group.group_buffered_target_stock === null ? (
+                            <span className="text-slate-400 text-[11px]">Not calculated</span>
+                          ) : (
+                            `${formatNumber(group.group_buffered_target_stock)} units`
+                          )}
+                        </td>
+
+                        {/* Suggested Purchase: Shows safety hold indicator */}
+                        <td className="px-4 py-3 text-right font-bold">
+                          {hasPurchase ? (
+                            <span className="text-blue-700 font-extrabold text-sm">
+                              {formatNumber(group.group_suggested_purchase_qty)} units
+                            </span>
+                          ) : rowInsufficient ? (
+                            <div>
+                              <span className="text-slate-500 font-medium">0 units</span>
+                              <div className="text-[10px] text-amber-700 font-semibold">Safety Hold</div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 font-normal">0 units</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-3 text-center">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              group.priority === "high"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : group.priority === "medium"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}
+                          >
+                            {group.priority}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void openDetail(group.main_product_template_id);
+                            }}
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 border border-blue-200 transition-colors shadow-2xs"
+                          >
+                            Inspect →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Group Detail Modal: Decision-First Plain Language Structure */}
+        {selectedTemplateId !== null && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/50 backdrop-blur-xs overflow-y-auto"
+            onClick={closeDetail}
+          >
+            <div
+              className="relative w-full max-w-3xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50 shrink-0">
+                <div className="min-w-0 flex-1 pr-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold border border-blue-200">
+                      Template ID {selectedTemplateId}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {detail?.group.members.length || 0} Products in Group Pool
+                    </span>
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900 truncate mt-1">
+                    {detail?.main_product.name || "Loading product group..."}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeDetail}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors shrink-0"
+                  aria-label="Close modal"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="overflow-y-auto p-6 space-y-6 flex-1">
+                {detailLoading ? (
+                  <div className="flex min-h-48 items-center justify-center">
+                    <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                  </div>
+                ) : detailError ? (
+                  <div className="p-4 rounded-xl bg-rose-50 text-rose-700 text-sm border border-rose-200">
+                    {detailError}
+                  </div>
+                ) : detail ? (
+                  <>
+                    {/* Cold-Start / Insufficient History Advisory Banner */}
+                    {isColdStart && (
+                      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900 space-y-1">
+                        <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
+                          <span className="rounded bg-amber-200 px-2 py-0.5 text-[11px] uppercase tracking-wider font-extrabold text-amber-900 border border-amber-300">
+                            Advisory only
+                          </span>
+                          <span>Insufficient History / Cold-Start Safety Safeguard</span>
+                        </div>
+                        <p className="leading-relaxed">
+                          This product group has fewer than 6 usable months of sales history ({detail.forecast.months_available ?? 0} months recorded). Operational demand forecast, horizon demand, and target buffer are <strong>not calculated</strong>. Analogue information is provided solely for advisory guidance. Automated purchase is held at <strong>0 units</strong> as a protective safety restriction pending manual review—not proof that current inventory satisfies unknown future demand.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Section 1: Demand Forecast */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                          1. Demand Forecast &amp; Planning Horizon
+                        </h3>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {isInsufficientHistory
+                            ? "Horizon demand not calculated (insufficient history)"
+                            : `${horizonMonths} Months Operational Horizon (3.0M Lead Time + 1.0M Review)`}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Next-Month Forecast</span>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {isInsufficientHistory || detail.recommendation.group_next_month_forecast === null
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(detail.recommendation.group_next_month_forecast)} units`}
                           </span>
                         </div>
-                        <h3 className="mt-1 truncate text-lg font-bold text-slate-900 group-hover:text-blue-800">{group.main_product_name}</h3>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
-                          <span>{group.group_size} products</span>
-                          <span>·</span>
-                          <span className="capitalize">{group.best_model || "trimmed_mean_3"}</span>
-                          {group.confidence && (
-                            <>
-                              <span>·</span>
-                              <span className="capitalize text-slate-600 font-medium">{group.confidence} conf</span>
-                            </>
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Lead Time Demand (3M)</span>
+                          <span className="font-semibold text-slate-900">
+                            {isInsufficientHistory || leadTimeDemand === null
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(leadTimeDemand)} units`}
+                          </span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Review Period Demand (1M)</span>
+                          <span className="font-semibold text-slate-900">
+                            {isInsufficientHistory || reviewPeriodDemand === null
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(reviewPeriodDemand)} units`}
+                          </span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200">
+                          <span className="text-blue-600 text-[10px] block font-medium">Total Horizon Demand</span>
+                          <span className="font-bold text-blue-700 text-sm">
+                            {isInsufficientHistory || forecastedHorizonDemand === null
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(forecastedHorizonDemand)} units`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {!isInsufficientHistory && cb?.forecast_breakdown?.monthly_forecasts && (
+                        <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-500">
+                          <span className="font-medium">Monthly Horizon Steps:</span>
+                          <div className="flex items-center gap-1.5 font-mono">
+                            {cb.forecast_breakdown.monthly_forecasts.map((f, i) => (
+                              <span key={i} className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
+                                M{i + 1}: {formatNumber(f)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 2: Stock Composition Visualization (Stacked Bar + Signals) */}
+                    <StockCompositionBar
+                      totalPhysicalStock={totalPhysicalStock}
+                      usableStock={usableStock}
+                      cutPiecesExcluded={cutPiecesExcluded}
+                      incomingStock={incomingStock}
+                      committedStock={committedStock}
+                      netPosition={netInventoryPosition}
+                      unit="units"
+                    />
+
+                    {/* Section 3: Suggested Replenishment Calculation */}
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                          3. Suggested Replenishment Calculation
+                        </h3>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${actionBadge(detail.recommendation.action)}`}>
+                          {actionLabel(detail.recommendation.action)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Target Stock Buffer</span>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {isInsufficientHistory || targetStock === null || targetStock === undefined
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(targetStock)} units`}
+                          </span>
+                          {!isInsufficientHistory && (
+                            <span className="text-[10px] text-slate-500 mt-0.5 block">
+                              Horizon ({formatNumber(forecastedHorizonDemand)}) + SS ({formatNumber(cb?.safety_stock_breakdown?.safety_stock || 0)})
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Net Inventory Position</span>
+                          <span className="font-semibold text-slate-900">
+                            {formatNumber(netInventoryPosition)} units
+                          </span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 block">(Usable + In) - Out</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 text-[10px] block">Stock Deficit (Gap)</span>
+                          <span className="font-bold text-slate-900 text-sm">
+                            {isInsufficientHistory || stockGap === null || stockGap === undefined
+                              ? "Not calculated — insufficient history"
+                              : `${formatNumber(stockGap)} units`}
+                          </span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-blue-50/80 border border-blue-300">
+                          <span className="text-blue-700 text-[10px] font-bold block">Suggested Purchase</span>
+                          <span className="font-extrabold text-blue-800 text-base">
+                            {formatNumber(detail.recommendation.group_suggested_purchase_qty)} units
+                          </span>
+                          {isInsufficientHistory && (
+                            <span className="text-[10px] text-amber-700 font-semibold mt-0.5 block">
+                              Safety Hold: 0 units pending review
+                            </span>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end shrink-0 gap-1.5">
-                        <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold capitalize ${actionClass(group.action)}`}>
-                          {displayLabel(group.action)}
+                    </div>
+
+                    {/* Section 4: Why this action was recommended */}
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-xs">
+                      <h3 className="font-bold uppercase tracking-wider text-slate-900 text-[11px]">
+                        4. Recommendation Rationale
+                      </h3>
+                      <p className="text-slate-700 leading-relaxed">
+                        {isInsufficientHistory ? (
+                          `Advisory only: Short sales history (${detail.forecast.months_available ?? 0} usable months). Operational forecast, horizon demand, and target buffer cannot be reliably calculated. Suggested purchase is restricted to 0 units as a protective safety restriction pending human planner review, not evidence that current inventory satisfies unknown future demand.`
+                        ) : cb?.zero_purchase_explanation ? (
+                          cb.zero_purchase_explanation
+                        ) : detail.recommendation.action === "purchase" ? (
+                          `Net inventory position (${formatNumber(netInventoryPosition)}) is below the target buffer (${formatNumber(targetStock)}), creating a stock gap of ${formatNumber(stockGap)} units across the operational horizon.`
+                        ) : (
+                          `Net inventory position (${formatNumber(netInventoryPosition)}) covers the target stock (${formatNumber(targetStock)}). No immediate purchase is required.`
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Section 5: Technical Details (Collapsed by default) */}
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setTechDetailsExpanded(!techDetailsExpanded)}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left border-b border-slate-200"
+                      >
+                        <span className="text-xs font-bold text-slate-700">
+                          5. Technical Calculation Details &amp; Formula Parameters
                         </span>
-                        <div className="flex items-center text-xs text-slate-600">
-                          <span>Usable: <span className="font-semibold text-emerald-600">{formatNumber(group.group_usable_qty)}</span></span>
-                          <span className="mx-1 text-slate-400">·</span>
-                          <span>Cut: <span className="font-semibold text-rose-600">{formatNumber(group.group_cut_piece_qty)}</span></span>
+                        <span className="text-xs text-blue-700 font-medium">
+                          {techDetailsExpanded ? "Hide Details ↑" : "Show Details ↓"}
+                        </span>
+                      </button>
+
+                      {techDetailsExpanded && (
+                        <div className="p-4 space-y-4 text-xs bg-slate-50/30">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Champion Model</span>
+                              <span className="font-mono font-bold text-blue-700">
+                                {detail.recommendation.best_model || (isInsufficientHistory ? "analogue_cold_start" : "trimmed_mean_3")}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Model Confidence</span>
+                              <span className="font-semibold text-slate-900 capitalize">
+                                {detail.recommendation.confidence || (isInsufficientHistory ? "Low (Advisory Only)" : "Normal")}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Service Level (Z-Score)</span>
+                              <span className="font-semibold text-slate-900">
+                                {cb?.safety_stock_breakdown?.service_level !== undefined && cb?.safety_stock_breakdown?.service_level !== null
+                                  ? `${(cb.safety_stock_breakdown.service_level * 100).toFixed(0)}% (Z=${cb.safety_stock_breakdown.z_score})`
+                                  : "—"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Forecast Error Sigma</span>
+                              <span className="font-semibold text-slate-900">
+                                σ = {cb?.safety_stock_breakdown?.sigma_error_1m !== undefined ? formatNumber(cb.safety_stock_breakdown.sigma_error_1m, 2) : "—"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Horizon Scale Factor</span>
+                              <span className="font-semibold text-slate-900">
+                                √({horizonMonths}M) = {cb?.safety_stock_breakdown?.horizon_scale_factor || 2.0}×
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Outlier Safety Cap</span>
+                              <span className="font-semibold text-slate-900">
+                                {cb?.safety_stock_breakdown?.cap_applied ? `Capped at ${cb.safety_stock_breakdown.cap_value}` : "Uncapped"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Safety Stock Method</span>
+                              <span className="font-semibold text-slate-900 capitalize">
+                                {cb?.safety_stock_breakdown?.safety_stock_method || "Dynamic Horizon"}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-white border border-slate-200">
+                              <span className="text-slate-400 text-[10px] block">Unbuffered Baseline</span>
+                              <span className="font-semibold text-slate-900">
+                                {formatNumber(detail.recommendation.group_reorder_point)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {detail.recommendation.reason_codes && detail.recommendation.reason_codes.length > 0 && (
+                            <div>
+                              <span className="text-[10px] text-slate-400 block mb-1">Reason Codes</span>
+                              <div className="flex flex-wrap gap-1 font-mono text-[10px]">
+                                {detail.recommendation.reason_codes.map((code) => (
+                                  <span key={code} className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                                    {code}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Clean Metrics Grid */}
-                    <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                        <p className="text-[11px] font-medium text-slate-500">Forecast</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_next_month_forecast)}</p>
+                    {/* Section 6: Responsive Vertical Bar Demand History Chart */}
+                    <MonthlyDemandChart
+                      history={groupHistory}
+                      loading={groupHistoryLoading}
+                      effectiveRunId={effectiveRunId}
+                      unit="units"
+                    />
+
+                    {/* Section 7: Group Members Table */}
+                    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                      <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                          7. Group Product Members ({detail.group.members.length} Products)
+                        </h3>
+                        <span className="text-[11px] text-slate-500">Shared Stock Pool</span>
                       </div>
-                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                        <p className="text-[11px] font-medium text-slate-500">Target</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_buffered_target_stock)}</p>
-                      </div>
-                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                        <p className="text-[11px] font-medium text-slate-500">Total Stock</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900">{formatNumber(group.group_current_stock)}</p>
-                      </div>
-                      <div className="rounded-lg bg-white/80 p-2.5 border border-slate-100">
-                        <p className="text-[11px] font-medium text-slate-500">Suggested</p>
-                        <p className={`mt-1 text-sm font-bold ${Number(group.group_suggested_purchase_qty) > 0 ? "text-blue-700" : "text-slate-700"}`}>
-                          {formatNumber(group.group_suggested_purchase_qty)}
-                        </p>
+
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-slate-50 text-left text-slate-500 font-semibold border-b border-slate-200">
+                            <tr>
+                              <th className="px-4 py-2.5">Product ID &amp; Name</th>
+                              <th className="px-3 py-2.5 text-right">Physical Stock</th>
+                              <th className="px-3 py-2.5 text-right">Usable Qty</th>
+                              <th className="px-3 py-2.5 text-right">Cut Pieces</th>
+                              <th className="px-3 py-2.5 text-right">Incoming</th>
+                              <th className="px-3 py-2.5 text-right">Committed</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {detail.group.members.map((m) => (
+                              <tr key={m.product_id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-2.5">
+                                  <div className="font-semibold text-slate-900">{m.name || "Product"}</div>
+                                  <span className="text-[10px] text-slate-400 font-mono">Product ID: {m.product_id}</span>
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-bold text-slate-900">
+                                  {formatNumber(m.current_stock)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right font-medium text-emerald-700">
+                                  {formatNumber(m.usable_qty)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right text-rose-700">
+                                  {formatNumber(m.cut_piece_qty)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right text-slate-700">
+                                  {formatNumber(m.incoming_qty)}
+                                </td>
+                                <td className="px-3 py-2.5 text-right text-slate-700">
+                                  {formatNumber(m.outgoing_qty)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  </button>
-                ))}
-              </section>
-
-              {/* Bottom Pagination Bar */}
-              {totalPages > 1 && (
-                <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-600">
-                  <span>
-                    Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredGroups.length)} of {filteredGroups.length} groups
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setCurrentPage(p => Math.max(1, p - 1));
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      ← Previous
-                    </button>
-                    <span className="px-2 font-bold text-slate-900">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setCurrentPage(p => Math.min(totalPages, p + 1));
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      disabled={currentPage >= totalPages}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white font-medium hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      Next →
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-      {/* Main Product Detail Modal */}
-      {selectedTemplateId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-900/50 p-3 sm:p-5" onClick={closeDetail} role="dialog" aria-modal="true">
-          <section className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={event => event.stopPropagation()}>
-
-            {/* PART 4: CLEAN MODAL HEADER */}
-            <header className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50/80 px-6 py-4">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">MAIN PRODUCT GROUP</p>
-                {detail?.main_product.name ? (
-                  <h2 className="mt-0.5 truncate text-2xl font-bold text-slate-900">
-                    {detail.main_product.name}
-                  </h2>
-                ) : (
-                  <div className="mt-1.5 h-7 w-48 rounded-md bg-slate-200 animate-pulse" />
-                )}
+                  </>
+                ) : null}
               </div>
-              <div className="flex items-center gap-4">
-                {detail ? (
-                  <span className="rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
-                    {detail.group.group_size} products
-                  </span>
-                ) : (
-                  <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
-                )}
-                <button onClick={closeDetail} className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors" aria-label="Close modal">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end px-6 py-3 border-t border-slate-200 bg-slate-50 shrink-0">
+                <button
+                  type="button"
+                  onClick={closeDetail}
+                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-2xs"
+                >
+                  Close
                 </button>
               </div>
-            </header>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-6">
-              {detailLoading && !detail ? (
-                <div className="space-y-6">
-                  {/* Skeleton Purchase Order Section */}
-                  <section className="rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-xs animate-pulse">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="h-3 w-28 rounded bg-blue-200/80" />
-                        <div className="h-5 w-48 rounded bg-blue-200/80" />
-                        <div className="h-3 w-36 rounded bg-blue-200/80" />
-                      </div>
-                      <div className="h-10 w-44 rounded-lg bg-blue-200/90" />
-                    </div>
-                  </section>
-
-                  {/* Skeleton Inventory Overview */}
-                  <section className="space-y-3">
-                    <div className="h-3.5 w-36 rounded bg-slate-200 animate-pulse" />
-                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs animate-pulse space-y-3">
-                          <div className="h-3 w-28 rounded bg-slate-200" />
-                          <div className="flex items-baseline justify-between gap-2">
-                            <div className="h-7 w-28 rounded bg-slate-200" />
-                            {i !== 2 && <div className="h-4 w-32 rounded bg-slate-200" />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Skeleton Similar Products */}
-                  <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="h-3.5 w-32 rounded bg-slate-200 animate-pulse" />
-                      <div className="h-3 w-24 rounded bg-slate-200 animate-pulse" />
-                    </div>
-                    <div className="grid gap-3.5 sm:grid-cols-2">
-                      {[1, 2].map(i => (
-                        <div key={i} className="rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs animate-pulse space-y-3.5">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                            <div className="h-5 w-32 rounded bg-slate-200" />
-                            <div className="h-5 w-24 rounded-full bg-slate-200" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="h-3 w-28 rounded bg-slate-200" />
-                            <div className="h-6 w-20 rounded bg-slate-200" />
-                            <div className="h-3 w-36 rounded bg-slate-200" />
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
-                            <div className="h-12 rounded-lg bg-slate-100" />
-                            <div className="h-12 rounded-lg bg-slate-100" />
-                            <div className="h-12 rounded-lg bg-slate-100" />
-                          </div>
-                          <div className="pt-2 border-t border-slate-100">
-                            <div className="h-3.5 w-44 rounded bg-slate-200" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Skeleton Group Demand History */}
-                  <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs animate-pulse space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                      <div className="space-y-1.5">
-                        <div className="h-4 w-40 rounded bg-slate-200" />
-                        <div className="h-3 w-60 rounded bg-slate-200" />
-                      </div>
-                      <div className="h-7 w-48 rounded-lg bg-slate-200" />
-                    </div>
-                    <div className="h-56 rounded-xl bg-slate-100/80" />
-                  </section>
-                </div>
-              ) : detailError && !detail ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{detailError}</div>
-              ) : detail ? (
-                <>
-                  {/* PART 5 & 6: INVENTORY OVERVIEW (3 PRIMARY BOXES) */}
-                  <section>
-                    <div className="mb-3">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Inventory Overview</h3>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-                      {/* Box 1: On-hand Stock */}
-                      <div className="rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs">
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">ON-HAND STOCK</p>
-                        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                          <p className="text-2xl font-bold tracking-tight text-slate-900">
-                            {formatNumber(detail.main_product.current_stock)} <span className="text-xs font-normal text-slate-500">units</span>
-                          </p>
-                          <div className="flex items-center text-xs text-slate-600">
-                            <span>
-                              Usable: <span className="font-semibold text-emerald-600">{formatNumber(detail.main_product.usable_qty)}</span>
-                            </span>
-                            <span className="mx-1.5 text-slate-400">·</span>
-                            <span>
-                              Cut-piece: <span className="font-semibold text-rose-600">{formatNumber(detail.main_product.cut_piece_qty)}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Box 2: Forecasted Stock (Part 2 Odoo Projected Inventory) */}
-                      <div className="rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs">
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">FORECASTED STOCK</p>
-                        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                          <p className="text-2xl font-bold tracking-tight text-slate-900">
-                            {formatNumber(detail.group.total_forecasted_stock ?? detail.main_product.forecasted_stock)} <span className="text-xs font-normal text-slate-500">units</span>
-                          </p>
-                          <span className="mt-1 block w-full text-xs font-medium text-slate-500">
-                            Odoo projected inventory position
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Box 3: Total Stock */}
-                      <div className="rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs">
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">TOTAL STOCK</p>
-                        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                          <p className="text-2xl font-bold tracking-tight text-slate-900">
-                            {formatNumber(detail.group.total_current_stock ?? detail.recommendation.group_current_stock)} <span className="text-xs font-normal text-slate-500">units</span>
-                          </p>
-                          <div className="flex items-center text-xs text-slate-600">
-                            <span>
-                              Usable: <span className="font-semibold text-emerald-600">{formatNumber(detail.group.total_usable_qty)}</span>
-                            </span>
-                            <span className="mx-1.5 text-slate-400">·</span>
-                            <span>
-                              Cut-piece: <span className="font-semibold text-rose-600">{formatNumber(detail.group.total_cut_piece_qty)}</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* PART 7 & 8: SIMILAR PRODUCTS (GROUP MEMBERS) */}
-                  <section>
-                    <div className="mb-3 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Similar Products</h3>
-                      </div>
-                      <span className="text-xs text-slate-500">{detail.group.members.length} group members</span>
-                    </div>
-
-                    <div className="grid gap-3.5 sm:grid-cols-2">
-                      {detail.group.members.map(member => {
-                        const isCanonical = member.template_id === detail.main_product.template_id;
-                        const intel = memberIntelligenceMap[member.product_id];
-                        const rec = recommendationsMap[member.product_id];
-
-                        return (
-                          <div
-                            key={member.product_id}
-                            className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4.5 shadow-xs transition-all hover:border-blue-300"
-                          >
-                            <div>
-                              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                                <span className="text-base font-bold text-slate-900">{member.name ?? `Product ${member.product_id}`}</span>
-                                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${isCanonical ? "bg-blue-50 text-blue-800 border-blue-200" : "bg-slate-50 text-slate-700 border-slate-200"}`}>
-                                  {isCanonical ? "Main Product" : "Similar Product"}
-                                </span>
-                              </div>
-
-                              <div className="mt-3">
-                                <span className="text-xs font-medium text-slate-500">Individual In-hand</span>
-                                <p className="mt-0.5 text-lg font-bold text-slate-900">{formatNumber(member.current_stock)}</p>
-                                <div className="mt-1 flex items-center text-xs text-slate-600">
-                                  <span>Usable: <span className="font-semibold text-emerald-600">{formatNumber(member.usable_qty)}</span></span>
-                                  <span className="mx-2 text-slate-400">·</span>
-                                  <span>Cut-piece: <span className="font-semibold text-rose-600">{formatNumber(member.cut_piece_qty)}</span></span>
-                                </div>
-                              </div>
-
-                              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-xs">
-                                <div className="rounded-lg bg-slate-50 p-2">
-                                  <span className="text-[11px] font-medium text-slate-500 block">Individual Forecast</span>
-                                  <span className="font-bold text-slate-900 mt-0.5 block">
-                                    {!intel || intel.status === "loading" ? "..." : (intel.status === "unavailable" ? "—" : formatNumber(intel.forecast))}
-                                  </span>
-                                </div>
-                                <div className="rounded-lg bg-slate-50 p-2">
-                                  <span className="text-[11px] font-medium text-slate-500 block">Individual Action</span>
-                                  <span className="font-semibold capitalize text-slate-800 mt-0.5 block">
-                                    {rec?.action ? displayLabel(rec.action) : "—"}
-                                  </span>
-                                </div>
-                                <div className="rounded-lg bg-slate-50 p-2">
-                                  <span className="text-[11px] font-medium text-slate-500 block">Confidence</span>
-                                  <span className="font-semibold capitalize text-slate-800 mt-0.5 block">
-                                    {intel?.confidence ? displayLabel(intel.confidence) : "—"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="mt-3.5 border-t border-slate-100 pt-2.5">
-                              <button
-                                type="button"
-                                onClick={() => openIndividualProduct(member.product_id)}
-                                className="group flex w-full items-center justify-between text-xs font-semibold text-blue-600 hover:text-blue-800"
-                              >
-                                <span>Open individual product detail</span>
-                                <span className="transition-transform group-hover:translate-x-0.5">→</span>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  {/* PART 10: GROUP DEMAND HISTORY (YEAR-OVER-YEAR GRAPH + 3-MONTH FORECAST) */}
-                  <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                      <div>
-                        <h3 className="text-base font-semibold text-slate-900">Group Demand History</h3>
-                        <p className="text-xs text-slate-500">Year-over-year comparison & 3-month demand forecast</p>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        {detail.forecast.confidence && (
-                          <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700 capitalize">
-                            Confidence: {displayLabel(detail.forecast.confidence)}
-                          </span>
-                        )}
-                        <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                          Next Month Forecast: {formatNumber(detail.forecast.next_month_forecast)} units
-                        </span>
-                      </div>
-                    </div>
-
-                    {groupHistoryLoading ? (
-                      <div className="flex h-56 items-center justify-center">
-                        <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-                      </div>
-                    ) : groupHistoryError ? (
-                      <div className="flex h-56 items-center justify-center text-sm font-medium text-red-600">{groupHistoryError}</div>
-                    ) : groupHistory.length > 0 ? (
-                      <GroupYearOverYearChart
-                        history={groupHistory}
-                        forecast3Months={detail.forecast.forecast_3_months || []}
-                        nextMonthForecast={detail.forecast.next_month_forecast}
-                      />
-                    ) : (
-                      <div className="flex h-56 items-center justify-center text-sm text-slate-500">No demand history recorded</div>
-                    )}
-                  </section>
-                </>
-              ) : null}
             </div>
-
-            <footer className="flex shrink-0 justify-end border-t border-slate-200 bg-slate-50/80 px-6 py-3.5">
-              <button onClick={closeDetail} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                Close
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
-
-      {/* INDIVIDUAL MEMBER PRODUCT DETAIL MODAL (NESTED OVER MAIN PRODUCT MODAL) */}
-      {selectedMemberProductId !== null && (
-        <div
-          className="fixed inset-0 z-70 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-hidden"
-          onClick={closeIndividualProduct}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="relative w-full max-w-3xl max-h-[90dvh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/70 px-6 py-4 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-800 font-bold text-sm">
-                  {memberDetailData?.product_name ? memberDetailData.product_name.charAt(0).toUpperCase() : "P"}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {memberDetailData?.product_name || `Product ${selectedMemberProductId}`}
-                  </h3>
-                  <p className="text-xs font-medium text-slate-500">Individual Product ID: {selectedMemberProductId}</p>
-                </div>
-              </div>
-              <button
-                onClick={closeIndividualProduct}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-                aria-label="Close modal"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {memberDetailLoading ? (
-              <div className="flex h-56 items-center justify-center p-6">
-                <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-              </div>
-            ) : memberDetailError ? (
-              <div className="p-6 text-center text-sm text-red-600">{memberDetailError}</div>
-            ) : memberDetailData ? (
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* 2. Main Metrics (4 boxes) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* In-hand Stock */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                    <span className="block text-xs font-medium text-slate-500">In-hand Stock</span>
-                    <span className="mt-1 block text-lg font-bold text-slate-900">
-                      {formatNumber(memberDetailData.current_stock ?? memberDetailData.stock_on_hand)} units
-                    </span>
-                    <div className="mt-1 flex items-center text-[11px] text-slate-600">
-                      <span>Usable: <span className="font-semibold text-emerald-600">{formatNumber(memberDetailData.usable_qty)}</span></span>
-                      <span className="mx-1 text-slate-400">·</span>
-                      <span>Cut-piece: <span className="font-semibold text-rose-600">{formatNumber(memberDetailData.cut_piece_qty)}</span></span>
-                    </div>
-                  </div>
-
-                  {/* Next Month Forecast */}
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3.5 shadow-xs">
-                    <span className="block text-xs font-medium text-blue-700">Next Month Forecast</span>
-                    <span className="mt-1 block text-lg font-bold text-blue-900">
-                      {formatNumber(memberDetailData.next_month_forecast)} units
-                    </span>
-                  </div>
-
-                  {/* Target Stock */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                    <span className="block text-xs font-medium text-slate-500">Target Stock</span>
-                    <span className="mt-1 block text-lg font-bold text-slate-900">
-                      {formatNumber(memberDetailData.buffered_target_stock)} units
-                    </span>
-                  </div>
-
-                  {/* Reorder Trigger */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
-                    <span className="block text-xs font-medium text-slate-500">Reorder Trigger</span>
-                    <span className="mt-1 block text-lg font-bold text-slate-900">
-                      {formatNumber(memberDetailData.reorder_point)} units
-                    </span>
-                  </div>
-                </div>
-
-                {/* Individual Product Demand History Graph */}
-                <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">Individual Product Demand History</h4>
-                      <p className="text-xs text-slate-500">Historical monthly sales for product {selectedMemberProductId}</p>
-                    </div>
-                    <span className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-                      Forecast: {formatNumber(memberDetailData.next_month_forecast)} units
-                    </span>
-                  </div>
-
-                  {memberHistoryLoading ? (
-                    <div className="flex h-44 items-center justify-center">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
-                    </div>
-                  ) : memberHistoryData.length > 0 ? (
-                    <IndividualDemandChart data={memberHistoryData} forecast={memberDetailData.next_month_forecast} />
-                  ) : (
-                    <div className="flex h-44 items-center justify-center text-xs text-slate-500">No individual demand history recorded</div>
-                  )}
-                </section>
-              </div>
-            ) : null}
-
-            <div className="flex justify-end border-t border-slate-200 bg-slate-50/80 px-6 py-3.5 shrink-0">
-              <button
-                type="button"
-                onClick={closeIndividualProduct}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
-              >
-                Back to Main Product
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </AppLayout>
-  );
-}
-
-// PART 10: YEAR-OVER-YEAR DEMAND & 3-MONTH FORECAST CHART
-const IndividualDemandChart = memo(function IndividualDemandChart({
-  data,
-  forecast,
-}: {
-  data: GroupHistoryPoint[];
-  forecast: number | null | undefined;
-}) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const chartWidth = 660;
-  const chartHeight = 180;
-  const paddingLeft = 40;
-  const paddingRight = 24;
-  const paddingTop = 20;
-  const paddingBottom = 28;
-
-  const innerWidth = chartWidth - paddingLeft - paddingRight;
-  const innerHeight = chartHeight - paddingTop - paddingBottom;
-
-  const actuals = data.map((d) => d.actual);
-  const maxActual = Math.max(...actuals, 10);
-  const niceMax = Math.ceil(maxActual * 1.15);
-  const minVal = 0;
-  const range = niceMax - minVal;
-
-  const getX = (index: number) => {
-    if (data.length <= 1) return paddingLeft + innerWidth / 2;
-    return paddingLeft + (index / (data.length - 1)) * innerWidth;
-  };
-
-  const getY = (val: number) => {
-    if (range === 0) return paddingTop + innerHeight / 2;
-    return paddingTop + innerHeight - ((val - minVal) / range) * innerHeight;
-  };
-
-  const points = data.map((d, i) => `${getX(i)},${getY(d.actual)}`);
-  const linePath = points.length > 0 ? `M ${points.join(" L ")}` : "";
-  const areaPath = points.length > 0
-    ? `M ${getX(0)},${paddingTop + innerHeight} L ${points.join(" L ")} L ${getX(data.length - 1)},${paddingTop + innerHeight} Z`
-    : "";
-
-  const yTicks = [0, 0.5, 1].map((pct) => ({
-    val: Math.round(minVal + pct * range),
-    y: paddingTop + innerHeight - pct * innerHeight,
-  }));
-
-  const total = data.length;
-  const xTickIndices: number[] = [];
-  if (total <= 6) {
-    for (let i = 0; i < total; i++) xTickIndices.push(i);
-  } else {
-    xTickIndices.push(0);
-    const step = Math.floor(total / 4);
-    for (let i = step; i < total - 1; i += step) {
-      xTickIndices.push(i);
-    }
-    xTickIndices.push(total - 1);
-  }
-
-  return (
-    <div className="relative w-full rounded-xl border border-slate-100 bg-slate-50/50 p-3" onMouseLeave={() => setHoveredIndex(null)}>
-      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-auto w-full select-none overflow-visible">
-        <defs>
-          <linearGradient id="indGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-
-        {yTicks.map((tick, idx) => (
-          <g key={idx}>
-            <line x1={paddingLeft} y1={tick.y} x2={chartWidth - paddingRight} y2={tick.y} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={idx === 0 ? "none" : "3 3"} />
-            <text x={paddingLeft - 6} y={tick.y + 4} fontSize="9" fill="#94a3b8" textAnchor="end" fontFamily="sans-serif">{tick.val}</text>
-          </g>
-        ))}
-
-        {areaPath && <path d={areaPath} fill="url(#indGrad)" />}
-        {linePath && <path d={linePath} fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
-
-        {data.map((d, i) => {
-          const cx = getX(i);
-          const cy = getY(d.actual);
-          const isHovered = i === hoveredIndex;
-          return (
-            <circle key={i} cx={cx} cy={cy} r={isHovered ? 5 : 3} fill={isHovered ? "#1d4ed8" : "#ffffff"} stroke="#2563eb" strokeWidth={2} />
-          );
-        })}
-
-        {xTickIndices.map((i) => {
-          const d = data[i];
-          if (!d) return null;
-          return (
-            <text key={i} x={getX(i)} y={chartHeight - paddingBottom + 16} fontSize="9" fill="#64748b" textAnchor="middle" fontFamily="sans-serif">
-              {d.month}
-            </text>
-          );
-        })}
-
-        {data.map((d, i) => {
-          const cx = getX(i);
-          const colWidth = innerWidth / (data.length > 1 ? data.length - 1 : 1);
-          return (
-            <rect key={`hit-${i}`} x={cx - colWidth / 2} y={paddingTop} width={colWidth} height={innerHeight + paddingBottom} fill="transparent" className="cursor-pointer" onMouseEnter={() => setHoveredIndex(i)} />
-          );
-        })}
-      </svg>
-
-      {hoveredIndex !== null && data[hoveredIndex] && (
-        <div className="absolute top-2 right-2 rounded-md bg-slate-900 px-2.5 py-1 text-xs text-white shadow-md">
-          <span className="font-medium text-slate-300">{data[hoveredIndex].month}: </span>
-          <span className="font-bold text-white">{formatNumber(data[hoveredIndex].actual)} units</span>
-        </div>
-      )}
-    </div>
-  );
-});
-
-type GroupYearOverYearChartProps = {
-  history: GroupHistoryPoint[];
-  forecast3Months: ForecastStep[];
-  nextMonthForecast: number | null | undefined;
-};
-
-const GroupYearOverYearChart = memo(function GroupYearOverYearChart({ history, forecast3Months, nextMonthForecast }: GroupYearOverYearChartProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  const chartWidth = 760;
-  const chartHeight = 250;
-  const paddingLeft = 50;
-  const paddingRight = 40;
-  const paddingTop = 25;
-  const paddingBottom = 40;
-
-  const innerWidth = chartWidth - paddingLeft - paddingRight;
-  const innerHeight = chartHeight - paddingTop - paddingBottom;
-
-  // Determine latest actual year and month from dataset
-  const lastActualPoint = history.length > 0 ? history[history.length - 1] : null;
-  const lastActualMonthStr = lastActualPoint ? lastActualPoint.month : "2026-08";
-  const [lastActualYearNum, lastActualMonthNum] = lastActualMonthStr.split("-").map(Number);
-
-  const currentYear = lastActualYearNum || 2026;
-  const prevYear = currentYear - 1;
-
-  // Create lookups
-  const historyMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const item of history) {
-      map[item.month] = item.actual;
-    }
-    return map;
-  }, [history]);
-
-  // Construct 12 month slots (Jan - Dec)
-  // Prev year: Jan-Dec of prevYear
-  const prevYearData = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, mIdx) => {
-      const monthStr = `${prevYear}-${String(mIdx + 1).padStart(2, "0")}`;
-      return {
-        monthIndex: mIdx,
-        monthName: MONTH_NAMES[mIdx],
-        monthStr,
-        actual: historyMap[monthStr] !== undefined ? historyMap[monthStr] : null,
-      };
-    });
-  }, [prevYear, historyMap]);
-
-  // Current year: Jan to latest available actual month
-  const currYearData = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, mIdx) => {
-      const monthNum = mIdx + 1;
-      const monthStr = `${currentYear}-${String(monthNum).padStart(2, "0")}`;
-      const isActualAvailable = monthNum <= lastActualMonthNum && historyMap[monthStr] !== undefined;
-      return {
-        monthIndex: mIdx,
-        monthName: MONTH_NAMES[mIdx],
-        monthStr,
-        isActual: isActualAvailable,
-        actual: isActualAvailable ? historyMap[monthStr] : null,
-      };
-    });
-  }, [currentYear, lastActualMonthNum, historyMap]);
-
-  // 3-Month Forecast points
-  const forecastPoints = useMemo(() => {
-    if (!forecast3Months || forecast3Months.length === 0) {
-      if (nextMonthForecast !== null && nextMonthForecast !== undefined && lastActualMonthNum < 12) {
-        return [{
-          monthIndex: lastActualMonthNum,
-          monthName: MONTH_NAMES[lastActualMonthNum],
-          monthStr: `${currentYear}-${String(lastActualMonthNum + 1).padStart(2, "0")}`,
-          forecast: nextMonthForecast,
-        }];
-      }
-      return [];
-    }
-    return forecast3Months.map(fc => {
-      const [y, m] = fc.month.split("-").map(Number);
-      const mIdx = (m - 1) % 12;
-      return {
-        monthIndex: mIdx,
-        monthName: MONTH_NAMES[mIdx],
-        monthStr: fc.month,
-        forecast: fc.forecast,
-      };
-    });
-  }, [forecast3Months, nextMonthForecast, lastActualMonthNum, currentYear]);
-
-  // Calculate scales
-  const allValues: number[] = [
-    ...prevYearData.map(d => d.actual ?? 0),
-    ...currYearData.filter(d => d.actual !== null).map(d => d.actual ?? 0),
-    ...forecastPoints.map(d => d.forecast),
-  ];
-  const maxVal = Math.max(...allValues, 10);
-  const niceMax = Math.ceil(maxVal * 1.15);
-  const minVal = 0;
-  const range = niceMax - minVal;
-
-  const getX = (monthIndex: number) => {
-    return paddingLeft + (monthIndex / 11) * innerWidth;
-  };
-
-  const getY = (val: number) => {
-    if (range === 0) return paddingTop + innerHeight / 2;
-    return paddingTop + innerHeight - ((val - minVal) / range) * innerHeight;
-  };
-
-  // SVG Paths
-  // 1. Previous Year Line (Solid slate)
-  const prevPoints = prevYearData.filter(d => d.actual !== null).map(d => `${getX(d.monthIndex)},${getY(d.actual!)}`);
-  const prevLinePath = prevPoints.length > 0 ? `M ${prevPoints.join(" L ")}` : "";
-
-  // 2. Current Year Line (Solid blue)
-  const currPoints = currYearData.filter(d => d.actual !== null).map(d => `${getX(d.monthIndex)},${getY(d.actual!)}`);
-  const currLinePath = currPoints.length > 0 ? `M ${currPoints.join(" L ")}` : "";
-
-  // 3. Forecast Line (Dashed blue starting from last actual point)
-  const lastActualMonthIdx = lastActualMonthNum - 1;
-  const lastActualVal = historyMap[lastActualMonthStr] ?? 0;
-  const forecastCoords = [
-    `${getX(lastActualMonthIdx)},${getY(lastActualVal)}`,
-    ...forecastPoints.map(f => `${getX(f.monthIndex)},${getY(f.forecast)}`),
-  ];
-  const forecastLinePath = forecastPoints.length > 0 ? `M ${forecastCoords.join(" L ")}` : "";
-
-  // Horizontal ticks
-  const yTicks = [0, 0.33, 0.66, 1].map(pct => ({
-    val: Math.round(minVal + pct * range),
-    y: paddingTop + innerHeight - pct * innerHeight,
-  }));
-
-  return (
-    <div className="space-y-4">
-      <div className="relative w-full rounded-xl border border-slate-100 bg-slate-50/50 p-3" onMouseLeave={() => setHoveredIndex(null)}>
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="h-auto w-full select-none overflow-visible">
-          {/* Grid lines */}
-          {yTicks.map((tick, idx) => (
-            <g key={idx}>
-              <line
-                x1={paddingLeft}
-                y1={tick.y}
-                x2={chartWidth - paddingRight}
-                y2={tick.y}
-                stroke="#e2e8f0"
-                strokeWidth="1"
-                strokeDasharray={idx === 0 ? "none" : "3 3"}
-              />
-              <text
-                x={paddingLeft - 8}
-                y={tick.y + 4}
-                fontSize="10"
-                fill="#94a3b8"
-                textAnchor="end"
-                fontFamily="sans-serif"
-              >
-                {tick.val}
-              </text>
-            </g>
-          ))}
-
-          {/* Line 1: Previous Year (Solid Slate) */}
-          {prevLinePath && (
-            <path
-              d={prevLinePath}
-              fill="none"
-              stroke="#94a3b8"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Points for Previous Year */}
-          {prevYearData.filter(d => d.actual !== null).map(d => (
-            <circle
-              key={`prev-${d.monthIndex}`}
-              cx={getX(d.monthIndex)}
-              cy={getY(d.actual!)}
-              r={hoveredIndex === d.monthIndex ? 4.5 : 3}
-              fill="#ffffff"
-              stroke="#94a3b8"
-              strokeWidth="2"
-            />
-          ))}
-
-          {/* Line 2: Current Year (Solid Vibrant Blue) */}
-          {currLinePath && (
-            <path
-              d={currLinePath}
-              fill="none"
-              stroke="#2563eb"
-              strokeWidth="2.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          )}
-
-          {/* Points for Current Year Actuals */}
-          {currYearData.filter(d => d.actual !== null).map(d => (
-            <circle
-              key={`curr-${d.monthIndex}`}
-              cx={getX(d.monthIndex)}
-              cy={getY(d.actual!)}
-              r={hoveredIndex === d.monthIndex ? 5.5 : 3.75}
-              fill={hoveredIndex === d.monthIndex ? "#1d4ed8" : "#ffffff"}
-              stroke="#2563eb"
-              strokeWidth="2.5"
-            />
-          ))}
-
-          {/* Line 3: 3-Month Forecast Line (Dashed Blue) */}
-          {forecastLinePath && (
-            <path
-              d={forecastLinePath}
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="2.5"
-              strokeDasharray="4 4"
-              strokeLinecap="round"
-            />
-          )}
-
-          {/* Points for Forecast Months */}
-          {forecastPoints.map(f => (
-            <g key={`fc-${f.monthIndex}`}>
-              <circle
-                cx={getX(f.monthIndex)}
-                cy={getY(f.forecast)}
-                r={hoveredIndex === f.monthIndex ? 8 : 6.5}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="1.5"
-                strokeDasharray="2 2"
-                className="animate-pulse"
-              />
-              <circle
-                cx={getX(f.monthIndex)}
-                cy={getY(f.forecast)}
-                r={hoveredIndex === f.monthIndex ? 5 : 4}
-                fill="#2563eb"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
-            </g>
-          ))}
-
-          {/* Hover Crosshair Guide */}
-          {hoveredIndex !== null && (
-            <line
-              x1={getX(hoveredIndex)}
-              y1={paddingTop}
-              x2={getX(hoveredIndex)}
-              y2={paddingTop + innerHeight}
-              stroke="#64748b"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-              className="pointer-events-none"
-            />
-          )}
-
-          {/* X Axis Month Labels (Jan - Dec) */}
-          {MONTH_NAMES.map((mName, i) => (
-            <text
-              key={i}
-              x={getX(i)}
-              y={chartHeight - paddingBottom + 18}
-              fontSize="10"
-              fill={hoveredIndex === i ? "#0f172a" : "#64748b"}
-              fontWeight={hoveredIndex === i ? "700" : "500"}
-              textAnchor="middle"
-              fontFamily="sans-serif"
-            >
-              {mName}
-            </text>
-          ))}
-
-          {/* Invisible interactive columns for smooth hover interaction */}
-          {Array.from({ length: 12 }).map((_, i) => {
-            const cx = getX(i);
-            const colWidth = innerWidth / 11;
-            return (
-              <rect
-                key={`hit-${i}`}
-                x={cx - colWidth / 2}
-                y={paddingTop}
-                width={colWidth}
-                height={innerHeight + paddingBottom}
-                fill="transparent"
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredIndex(i)}
-              />
-            );
-          })}
-        </svg>
-
-        {/* Hover Tooltip */}
-        {hoveredIndex !== null && (() => {
-          const mIdx = hoveredIndex;
-          const mName = MONTH_NAMES[mIdx];
-          const prevD = prevYearData[mIdx];
-          const currD = currYearData[mIdx];
-          const fcD = forecastPoints.find(f => f.monthIndex === mIdx);
-
-          const xPct = (getX(mIdx) / chartWidth) * 100;
-          let tooltipTranslateX = "-50%";
-          if (mIdx === 0 || xPct < 22) tooltipTranslateX = "0%";
-          else if (mIdx === 11 || xPct > 78) tooltipTranslateX = "-100%";
-
-          return (
-            <div
-              className="pointer-events-none absolute z-30 min-w-max rounded-lg border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs text-white shadow-xl backdrop-blur-xs"
-              style={{
-                left: `${xPct}%`,
-                top: "15%",
-                transform: `translate(${tooltipTranslateX}, 0)`,
-              }}
-            >
-              <p className="font-bold text-slate-200 border-b border-slate-700 pb-1 mb-1.5">{mName}</p>
-
-              {prevD && prevD.actual !== null && (
-                <div className="flex items-center justify-between gap-4 text-slate-300">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <span className="h-2 w-2 rounded-full bg-slate-400" />
-                    Previous Year ({prevYear}):
-                  </span>
-                  <span className="font-semibold text-white">{formatNumber(prevD.actual)} units</span>
-                </div>
-              )}
-
-              {currD && currD.actual !== null && (
-                <div className="mt-1 flex items-center justify-between gap-4 text-slate-300">
-                  <span className="flex items-center gap-1.5 text-blue-400">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    Current Year ({currentYear}):
-                  </span>
-                  <span className="font-semibold text-white">{formatNumber(currD.actual)} units</span>
-                </div>
-              )}
-
-              {fcD && (
-                <div className="mt-1 flex items-center justify-between gap-4 text-blue-200 font-bold">
-                  <span className="flex items-center gap-1.5 text-blue-400">
-                    <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-                    Forecast:
-                  </span>
-                  <span className="font-bold text-blue-200">{formatNumber(fcD.forecast)} units</span>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Chart Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-3 text-xs">
-        <div className="flex flex-wrap items-center gap-5 text-slate-600">
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-4 rounded-full bg-slate-400" />
-            <span className="font-medium">Previous Year ({prevYear})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-4 rounded-full bg-blue-600" />
-            <span className="font-medium">Current Year ({currentYear})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-4 rounded-full border border-dashed border-blue-600 bg-blue-100" />
-            <span className="font-medium text-blue-700">Next 3 Months Forecast</span>
-          </div>
-        </div>
-
-        {lastActualPoint && (
-          <div className="text-xs text-slate-500">
-            Latest recorded: <span className="font-semibold text-slate-800">{lastActualPoint.month}</span> ({formatNumber(lastActualPoint.actual)} units)
           </div>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
-});
+}

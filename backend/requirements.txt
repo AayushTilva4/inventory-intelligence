@@ -9,3 +9,5 @@ python-dotenv
 SQLAlchemy
 statsmodels
 uvicorn[standard]
+alembic
+

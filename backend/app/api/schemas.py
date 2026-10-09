@@ -152,6 +152,8 @@ class GroupRecommendationResponse(BaseModel):
     reason_codes: list[str]
     dead_stock: bool | None
     dead_stock_reason: str | None
+    zero_purchase_explanation: str | None = None
+    calculation_breakdown: dict[str, Any] | None = None
 
 
 class PersistedGroupForecastResponse(BaseModel):
@@ -203,6 +205,8 @@ class PersistedGroupRecommendationResponse(BaseModel):
     forecast_status: str | None
     approval_status: Literal["pending", "approved", "rejected"]
     approval_updated_at: datetime | None
+    zero_purchase_explanation: str | None = None
+    calculation_breakdown: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
 

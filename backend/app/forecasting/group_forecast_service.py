@@ -81,6 +81,16 @@ def get_group_forecast(product_id: int) -> dict[str, Any] | None:
     if len(sales) < MINIMUM_HISTORY:
         result["confidence"] = "low"
         result["confidence_reason"] = "insufficient_group_history"
+        try:
+            from app.forecasting.cold_start_analogue_service import get_cold_start_analogues
+            analogue_diag = get_cold_start_analogues(
+                target_product_id=int(demand["main_product_template_id"]),
+                target_history_sales=sales,
+            )
+            result["cold_start_diagnostic"] = analogue_diag
+        except Exception:
+            result["cold_start_diagnostic"] = None
+
         _group_forecast_cache[product_id] = result
         return result
 

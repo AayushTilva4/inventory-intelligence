@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.auth import get_current_user
 from app.api.schemas import (
     GroupDemandHistoryResponse,
     GroupForecastResponse,
@@ -15,7 +16,9 @@ from app.inventory.group_recommendation_service import get_group_recommendation
 router = APIRouter(
     prefix="/api/products",
     tags=["Products"],
+    dependencies=[Depends(get_current_user)],
 )
+
 
 
 @router.get("/{product_id}/group", response_model=ProductGroupResponse)

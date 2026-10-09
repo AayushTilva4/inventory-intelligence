@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.auth import get_current_user
 from app.db.repository import (
     get_recommendations,
     update_approval_status,
@@ -14,7 +15,9 @@ from app.api.schemas import (
 router = APIRouter(
     prefix="/api/inventory",
     tags=["Inventory"],
+    dependencies=[Depends(get_current_user)],
 )
+
 
 
 @router.get(
@@ -27,7 +30,10 @@ def inventory_recommendations():
 
 @router.get("/draft-pos")
 def draft_purchase_orders():
-    return get_all_draft_pos()
+    raise HTTPException(
+        status_code=403,
+        detail="Draft purchase order operations are disabled in the read-only POC.",
+    )
 
 
 @router.get(
@@ -62,56 +68,27 @@ def inventory_summary():
         "priorities": priority_counts,
     }
 
+
 @router.post("/recommendations/{product_id}/approve")
 def approve_recommendation(product_id: int):
-    updated = update_approval_status(
-        product_id,
-        "approved",
+    raise HTTPException(
+        status_code=403,
+        detail="Recommendation approval workflows are disabled in the read-only POC.",
     )
-
-    if not updated:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"Recommendation for product "
-                f"{product_id} not found"
-            ),
-        )
-
-    return {
-        "product_id": product_id,
-        "approval_status": "approved",
-    }
 
 
 @router.post("/recommendations/{product_id}/reject")
 def reject_recommendation(product_id: int):
-    updated = update_approval_status(
-        product_id,
-        "rejected",
+    raise HTTPException(
+        status_code=403,
+        detail="Recommendation rejection workflows are disabled in the read-only POC.",
     )
-
-    if not updated:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"Recommendation for product "
-                f"{product_id} not found"
-            ),
-        )
-
-    return {
-        "product_id": product_id,
-        "approval_status": "rejected",
-    }
 
 
 @router.post("/recommendations/{product_id}/create-draft-po")
 def create_draft_po(product_id: int):
-    try:
-        po_info = create_draft_po_for_product(product_id)
-        return po_info
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=403,
+        detail="Purchase order creation is disabled in the read-only POC.",
+    )
+

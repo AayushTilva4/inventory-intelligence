@@ -265,6 +265,108 @@ def build_recommendation(row: dict[str, Any]) -> dict[str, Any]:
     else:
         priority = "low"
 
+    # ---------------------------------------------------------
+    # Zero-Purchase Explanation Construction (Phase 2 Task 11)
+    # ---------------------------------------------------------
+    zero_purchase_explanation = None
+    if suggested_purchase_qty == 0:
+        if dead_stock:
+            zero_purchase_explanation = "Target stock is 0.00 because product group is classified as dead stock (no recent customer demand)."
+        elif action == "excess_stock":
+            zero_purchase_explanation = f"Inventory position ({inventory_position:.2f}) far exceeds target stock ({target_stock:.2f}) by excess multiplier (>= 2.0x)."
+        elif action == "hold" and incoming_stock > 0 and (usable_stock + incoming_stock - committed_stock) >= target_stock:
+            zero_purchase_explanation = f"Inventory position ({inventory_position:.2f}) meets target stock ({target_stock:.2f}); incoming stock ({incoming_stock:.2f}) covers replenishment requirement."
+        elif target_stock == 0.0:
+            zero_purchase_explanation = "Forecasted horizon demand (0.00) and safety stock (0.00) are both zero. Target stock is 0.00."
+        elif inventory_position >= target_stock:
+            zero_purchase_explanation = f"Inventory position ({inventory_position:.2f}) already covers target stock ({target_stock:.2f}). No purchase gap remaining."
+        else:
+            zero_purchase_explanation = "No purchase gap remaining after accounting for inventory position and target stock."
+
+    # ---------------------------------------------------------
+    # Calculation Breakdown (Phase 2 Task 11)
+    # ---------------------------------------------------------
+    mf = row.get("forecast_multistep_values")
+    if not mf or len(mf) < 4:
+        single_fc = float(forecast or 0.0)
+        mf_4 = [round(single_fc, 2)] * 4
+    else:
+        mf_4 = [round(float(v), 2) for v in mf[:4]]
+
+    history_m = row.get("history_months") if row.get("history_months") is not None else row.get("months_available")
+    usable_obs = row.get("usable_observations") if row.get("usable_observations") is not None else row.get("months_available")
+    is_short_hist = row.get("is_short_history", bool(usable_obs and usable_obs < 14))
+
+    forecast_breakdown = {
+        "monthly_forecasts": mf_4,
+        "forecasted_horizon_demand": round(forecasted_horizon_demand, 2),
+        "selected_model": row.get("best_model") or row.get("selected_model"),
+        "selection_reason": row.get("selection_reason"),
+        "history_months": history_m,
+        "usable_observations": usable_obs,
+        "stockout_suppressed_months": row.get("stockout_suppressed_months", 0),
+        "demand_pattern": demand_pattern,
+        "is_short_history": is_short_hist,
+        "short_history_fallback_used": row.get("short_history_fallback_used", is_short_hist),
+        "confidence": confidence,
+        "wape": row.get("wape"),
+        "mase": row.get("mase"),
+        "rmse": row.get("rmse") if row.get("rmse") is not None else ss_info.get("sigma_error_1m"),
+        "observation_count": row.get("observation_count") or row.get("evaluation_observations"),
+        "warnings": row.get("warnings", []),
+    }
+
+    safety_stock_breakdown = {
+        "lead_time_months": lead_time_months,
+        "review_period_months": review_period_months,
+        "operational_horizon_months": operational_horizon_months,
+        "service_level": ss_info.get("service_level"),
+        "z_score": ss_info.get("z_score"),
+        "sigma_error_1m": ss_info.get("sigma_error_1m"),
+        "horizon_scale_factor": ss_info.get("horizon_scale_factor", 2.0),
+        "sigma_horizon": ss_info.get("sigma_horizon"),
+        "raw_safety_stock": ss_info.get("raw_safety_stock"),
+        "cap_applied": ss_info.get("cap_applied", False),
+        "cap_value": ss_info.get("cap_value"),
+        "final_safety_stock": round(safety_stock, 2),
+        "safety_stock_method": ss_info.get("safety_stock_method"),
+        "dead_stock_safeguard": ss_info.get("dead_stock_safeguard", False),
+    }
+
+    inventory_position_breakdown = {
+        "usable_stock": round(usable_stock, 2),
+        "incoming_stock": round(incoming_stock, 2),
+        "committed_stock": round(committed_stock, 2),
+        "cut_piece_stock_excluded": round(cut_piece_stock, 2),
+        "inventory_position": round(inventory_position, 2),
+        "formula": "Inventory Position = Usable Stock + Incoming Stock - Committed Customer Demand",
+    }
+
+    target_and_purchase_breakdown = {
+        "forecasted_horizon_demand": round(forecasted_horizon_demand, 2),
+        "safety_stock": round(safety_stock, 2),
+        "target_stock": round(target_stock, 2),
+        "inventory_position": round(inventory_position, 2),
+        "stock_gap": round(stock_gap, 2),
+        "suggested_purchase_qty": suggested_purchase_qty,
+        "action": action,
+        "reason_codes": reason_codes,
+        "zero_purchase_explanation": zero_purchase_explanation,
+        "formulas": {
+            "target_stock": "Target Stock = Forecasted Horizon Demand + Safety Stock",
+            "stock_gap": "Stock Gap = max(Target Stock - Inventory Position, 0)",
+            "suggested_purchase_qty": "Suggested Purchase Quantity = ceil(Stock Gap)",
+        },
+    }
+
+    calculation_breakdown = {
+        "forecast_breakdown": forecast_breakdown,
+        "safety_stock_breakdown": safety_stock_breakdown,
+        "inventory_position_breakdown": inventory_position_breakdown,
+        "target_and_purchase_breakdown": target_and_purchase_breakdown,
+        "zero_purchase_explanation": zero_purchase_explanation,
+    }
+
     return {
         "action": action,
         "priority": priority,
@@ -285,6 +387,10 @@ def build_recommendation(row: dict[str, Any]) -> dict[str, Any]:
         "service_level": ss_info.get("service_level"),
         "z_score": ss_info.get("z_score"),
         "sigma_error_1m": ss_info.get("sigma_error_1m"),
+        "sigma_horizon": ss_info.get("sigma_horizon"),
+        "raw_safety_stock": ss_info.get("raw_safety_stock"),
+        "cap_applied": ss_info.get("cap_applied", False),
+        "cap_value": ss_info.get("cap_value"),
         "safety_stock_method": ss_info.get("safety_stock_method"),
         "target_stock": round(target_stock, 2),
         "buffered_target_stock": round(buffered_target, 2),
@@ -296,4 +402,6 @@ def build_recommendation(row: dict[str, Any]) -> dict[str, Any]:
         ),
         "suggested_purchase_qty": suggested_purchase_qty,
         "reason_codes": reason_codes,
+        "zero_purchase_explanation": zero_purchase_explanation,
+        "calculation_breakdown": calculation_breakdown,
     }

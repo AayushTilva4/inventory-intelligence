@@ -133,11 +133,11 @@ class TestPlannerApprovalWorkflow(unittest.TestCase):
         self.assertGreaterEqual(float(rejected["target_stock"]), 0.0)
 
     def test_edit_preserves_original_ai_and_stores_overrides(self):
-        """Editing overrides target and purchase quantities while permanently keeping original AI recommendation."""
-        pending = self.service.list_approvals(status="PENDING", limit=5)["items"]
-        if not pending:
+        pending = self.service.list_approvals(status="PENDING", limit=10)["items"]
+        non_dead = [p for p in pending if p.get("pattern") != "dead_stock"]
+        if not non_dead:
             return
-        target_item = pending[0]
+        target_item = non_dead[0]
         appr_id = target_item["approval_id"]
         orig_tgt = float(target_item["target_stock"])
         orig_buy = float(target_item["suggested_purchase"])

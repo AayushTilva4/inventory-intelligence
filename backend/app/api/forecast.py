@@ -1,13 +1,18 @@
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException
 import pandas as pd
 
+from app.api.auth import get_current_user
 from app.forecasting.engine_adapter import load_forecasting_inputs
 from app.forecasting.forecast_service import get_product_forecast
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/api/forecast",
     tags=["Forecast"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -21,9 +26,10 @@ def product_forecast(product_id: int):
             detail=str(exc),
         )
     except Exception as exc:
+        logger.exception("Product forecast generation failed for product_id=%s", product_id)
         raise HTTPException(
             status_code=500,
-            detail=f"Forecast generation failed: {exc}",
+            detail="Forecast generation failed. Please contact the administrator.",
         )
 
 
@@ -77,7 +83,8 @@ def product_history(product_id: int):
         raise
 
     except Exception as exc:
+        logger.exception("Loading product history failed for product_id=%s", product_id)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load product history: {exc}",
-        )
+            detail="Failed to load product history. Please contact the administrator.",
+        )

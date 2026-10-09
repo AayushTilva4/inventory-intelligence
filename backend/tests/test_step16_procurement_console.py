@@ -30,10 +30,12 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
-from app.main import app
+from app.main import app as production_app
+from app.api.procurement import router as procurement_router
 from app.db.connection import get_poc_engine, get_odoo_engine
 from app.forecasting.benchmark_v2.approvals import PlannerApprovalService
 from app.forecasting.benchmark_v2.portal_po import PortalPOService
@@ -42,11 +44,19 @@ from app.forecasting.benchmark_v2.portal_po import PortalPOService
 class TestStep16ProcurementConsole(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        test_app = FastAPI()
+        test_app.include_router(procurement_router)
+        cls.client = TestClient(test_app)
+        cls.prod_client = TestClient(production_app)
         cls.approval_service = PlannerApprovalService()
         cls.portal_po_service = PortalPOService()
         # Ensure approvals table is seeded
         cls.approval_service.sync_from_snapshot()
+
+    def test_00_procurement_unregistered_in_production_app(self):
+        """Verifies that procurement router is unregistered in the production POC application."""
+        res = self.prod_client.get("/api/procurement/kpis")
+        self.assertEqual(res.status_code, 404)
 
     def test_01_executive_kpis(self):
         """Validates that executive KPI metrics return accurate live POC values."""
@@ -58,6 +68,7 @@ class TestStep16ProcurementConsole(unittest.TestCase):
         self.assertIn("total_constrained_quantity", data)
         self.assertIn("pending_planner_review", data)
         self.assertIn("high_risk_exceptions", data)
+
         self.assertIn("inbound_conflict_products", data)
         self.assertIn("missing_supplier_products", data)
         self.assertIn("portal_draft_pos", data)

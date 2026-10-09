@@ -20,8 +20,9 @@ if str(BACKEND_ROOT) not in sys.path:
 load_dotenv(BACKEND_ROOT / ".env")
 
 import pandas as pd
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from app.main import app
+from app.api.procurement import router as procurement_router
 from app.forecasting.benchmark_v2.decision_service import (
     InventoryDecisionPipeline,
     SupplierConstraints,
@@ -33,9 +34,12 @@ from app.forecasting.benchmark_v2.approvals import PlannerApprovalService
 class TestStep18Consistency(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        test_app = FastAPI()
+        test_app.include_router(procurement_router)
+        cls.client = TestClient(test_app)
         cls.pipeline = InventoryDecisionPipeline()
         cls.po_service = PortalPOService()
+
 
     def test_01_service_and_non_inventory_exclusion(self):
         """Verifies service products cannot generate forecast, target, purchase, or PO."""

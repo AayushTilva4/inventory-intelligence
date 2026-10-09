@@ -13,11 +13,13 @@ STRICT CANARY INVARIANTS:
 - Labeled: PASSIVE SHADOW — NOT LIVE PROCUREMENT.
 """
 
+import logging
 from typing import Any, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 import pandas as pd
 
+from app.api.auth import get_current_user
 from app.db.connection import get_poc_engine
 from app.forecasting.benchmark_v2.canary_shadow import (
     CanaryShadowRunner,
@@ -26,10 +28,14 @@ from app.forecasting.benchmark_v2.canary_shadow import (
 from app.forecasting.benchmark_v2.calibration import EmpiricalSafetyCalibrator
 from app.forecasting.engine_adapter import load_forecasting_inputs, load_existing_engine
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/api/shadow",
     tags=["Canary Shadow"],
+    dependencies=[Depends(get_current_user)],
 )
+
 
 
 @router.get("/snapshots")
@@ -157,7 +163,8 @@ def get_shadow_comparisons(
                 "items": [dict(r) for r in rows],
             }
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Database query failed: {exc}")
+        logger.exception("Database query failed in get_shadow_comparisons")
+        raise HTTPException(status_code=500, detail="Database query failed. Please contact the administrator.")
 
 
 @router.get("/audit-log/{product_id}")
@@ -178,4 +185,6 @@ def get_product_audit_log(product_id: int) -> list[dict[str, Any]]:
             rows = conn.execute(query, {"pid": product_id}).mappings().all()
             return [dict(r) for r in rows]
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.exception("Database query failed in get_product_audit_log for product_id=%s", product_id)
+        raise HTTPException(status_code=500, detail="Failed to retrieve audit log. Please contact the administrator.")
+

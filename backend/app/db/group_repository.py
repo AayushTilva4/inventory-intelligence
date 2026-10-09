@@ -1,10 +1,11 @@
 import json
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from sqlalchemy import Engine, text
 
 from app.db.connection import get_poc_engine
+from app.db.planning_run_repository import get_latest_completed_run_id, DEFAULT_RETENTION_LIMIT
 
 
 @contextmanager
@@ -22,7 +23,8 @@ def create_group_tables(engine: Engine | None = None) -> None:
     forecast_ddl = """
         CREATE TABLE IF NOT EXISTS group_forecast_results (
             id BIGSERIAL PRIMARY KEY,
-            main_product_template_id BIGINT NOT NULL UNIQUE,
+            run_id VARCHAR(64) NOT NULL DEFAULT 'legacy_initial_run',
+            main_product_template_id BIGINT NOT NULL,
             main_product_name TEXT NOT NULL,
             group_size INTEGER NOT NULL,
             months_available INTEGER,
@@ -37,13 +39,15 @@ def create_group_tables(engine: Engine | None = None) -> None:
             avg_monthly_demand NUMERIC,
             forecast_status TEXT NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_group_forecast_run_template UNIQUE (run_id, main_product_template_id)
         )
     """
     recommendation_ddl = """
         CREATE TABLE IF NOT EXISTS group_inventory_recommendations (
             id BIGSERIAL PRIMARY KEY,
-            main_product_template_id BIGINT NOT NULL UNIQUE,
+            run_id VARCHAR(64) NOT NULL DEFAULT 'legacy_initial_run',
+            main_product_template_id BIGINT NOT NULL,
             main_product_name TEXT NOT NULL,
             group_size INTEGER NOT NULL,
             group_valid BOOLEAN NOT NULL,
@@ -69,7 +73,8 @@ def create_group_tables(engine: Engine | None = None) -> None:
                 CHECK (approval_status IN ('pending', 'approved', 'rejected')),
             approval_updated_at TIMESTAMP NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_group_recommendations_run_template UNIQUE (run_id, main_product_template_id)
         )
     """
 
@@ -81,21 +86,22 @@ def create_group_tables(engine: Engine | None = None) -> None:
 
 def upsert_group_forecast(
     result: dict[str, Any],
+    run_id: str = "legacy_initial_run",
     engine: Engine | None = None,
 ) -> None:
     query = text("""
         INSERT INTO group_forecast_results (
-            main_product_template_id, main_product_name, group_size,
+            run_id, main_product_template_id, main_product_name, group_size,
             months_available, history_start, history_end,
             next_month_forecast, best_model, confidence, mae, wape, mase,
             avg_monthly_demand, forecast_status
         ) VALUES (
-            :main_product_template_id, :main_product_name, :group_size,
+            :run_id, :main_product_template_id, :main_product_name, :group_size,
             :months_available, :history_start, :history_end,
             :next_month_forecast, :best_model, :confidence, :mae, :wape, :mase,
             :avg_monthly_demand, :forecast_status
         )
-        ON CONFLICT (main_product_template_id) DO UPDATE SET
+        ON CONFLICT (run_id, main_product_template_id) DO UPDATE SET
             main_product_name = EXCLUDED.main_product_name,
             group_size = EXCLUDED.group_size,
             months_available = EXCLUDED.months_available,
@@ -112,6 +118,7 @@ def upsert_group_forecast(
             updated_at = CURRENT_TIMESTAMP
     """)
     params = {
+        "run_id": run_id,
         "main_product_template_id": result["main_product_template_id"],
         "main_product_name": result.get("main_product_name") or "",
         "group_size": result["group_size"],
@@ -134,35 +141,47 @@ def upsert_group_forecast(
 
 def save_group_forecast(
     result: dict[str, Any],
+    run_id: str = "legacy_initial_run",
     engine: Engine | None = None,
 ) -> None:
-    upsert_group_forecast(result, engine=engine)
+    upsert_group_forecast(result, run_id=run_id, engine=engine)
 
 
 def upsert_group_recommendation(
     result: dict[str, Any],
+    run_id: str = "legacy_initial_run",
     engine: Engine | None = None,
 ) -> None:
-    query = text("""
-        INSERT INTO group_inventory_recommendations (
-            main_product_template_id, main_product_name, group_size, group_valid,
-            group_current_stock, group_next_month_forecast, best_model, confidence,
-            group_reorder_point, group_buffered_target_stock, group_stock_gap,
-            group_coverage_ratio, group_suggested_purchase_qty, action, priority,
-            reason_codes, validation_issues, validation_warnings, dead_stock,
-            dead_stock_reason, recommendation_status, forecast_status
-        ) VALUES (
-            :main_product_template_id, :main_product_name, :group_size, :group_valid,
-            :group_current_stock, :group_next_month_forecast, :best_model, :confidence,
-            :group_reorder_point, :group_buffered_target_stock, :group_stock_gap,
-            :group_coverage_ratio, :group_suggested_purchase_qty, :action, :priority,
-            CAST(:reason_codes AS JSONB), CAST(:validation_issues AS JSONB),
-            CAST(:validation_warnings AS JSONB), :dead_stock, :dead_stock_reason,
-            :recommendation_status, :forecast_status
-        )
-        ON CONFLICT (main_product_template_id) DO UPDATE SET
-            main_product_name = EXCLUDED.main_product_name,
-            group_size = EXCLUDED.group_size,
+    with _using_engine(engine) as active_engine:
+        if active_engine.dialect.name == "postgresql":
+            cast_rc = "CAST(:reason_codes AS JSONB)"
+            cast_vi = "CAST(:validation_issues AS JSONB)"
+            cast_vw = "CAST(:validation_warnings AS JSONB)"
+        else:
+            cast_rc = ":reason_codes"
+            cast_vi = ":validation_issues"
+            cast_vw = ":validation_warnings"
+
+        query = text(f"""
+            INSERT INTO group_inventory_recommendations (
+                run_id, main_product_template_id, main_product_name, group_size, group_valid,
+                group_current_stock, group_next_month_forecast, best_model, confidence,
+                group_reorder_point, group_buffered_target_stock, group_stock_gap,
+                group_coverage_ratio, group_suggested_purchase_qty, action, priority,
+                reason_codes, validation_issues, validation_warnings, dead_stock,
+                dead_stock_reason, recommendation_status, forecast_status
+            ) VALUES (
+                :run_id, :main_product_template_id, :main_product_name, :group_size, :group_valid,
+                :group_current_stock, :group_next_month_forecast, :best_model, :confidence,
+                :group_reorder_point, :group_buffered_target_stock, :group_stock_gap,
+                :group_coverage_ratio, :group_suggested_purchase_qty, :action, :priority,
+                {cast_rc}, {cast_vi},
+                {cast_vw}, :dead_stock, :dead_stock_reason,
+                :recommendation_status, :forecast_status
+            )
+            ON CONFLICT (run_id, main_product_template_id) DO UPDATE SET
+                main_product_name = EXCLUDED.main_product_name,
+                group_size = EXCLUDED.group_size,
             group_valid = EXCLUDED.group_valid,
             group_current_stock = EXCLUDED.group_current_stock,
             group_next_month_forecast = EXCLUDED.group_next_month_forecast,
@@ -185,6 +204,7 @@ def upsert_group_recommendation(
             updated_at = CURRENT_TIMESTAMP
     """)
     params = {
+        "run_id": run_id,
         "main_product_template_id": result["main_product_template_id"],
         "main_product_name": result.get("main_product_name") or "",
         "group_size": result["group_size"],
@@ -197,9 +217,7 @@ def upsert_group_recommendation(
         "group_buffered_target_stock": result.get("group_buffered_target_stock"),
         "group_stock_gap": result.get("group_stock_gap"),
         "group_coverage_ratio": result.get("group_coverage_ratio"),
-        "group_suggested_purchase_qty": result.get(
-            "group_suggested_purchase_qty", 0
-        ),
+        "group_suggested_purchase_qty": result.get("group_suggested_purchase_qty", 0),
         "action": result["action"],
         "priority": result["priority"],
         "reason_codes": json.dumps(result.get("reason_codes") or []),
@@ -217,18 +235,22 @@ def upsert_group_recommendation(
 
 def save_group_recommendation(
     result: dict[str, Any],
+    run_id: str = "legacy_initial_run",
     engine: Engine | None = None,
 ) -> None:
-    upsert_group_recommendation(result, engine=engine)
+    upsert_group_recommendation(result, run_id=run_id, engine=engine)
 
 
 def update_group_approval_status(
     main_product_template_id: int,
     status: str,
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> bool:
     if status not in {"pending", "approved", "rejected"}:
         raise ValueError("Approval status must be pending, approved, or rejected")
+
+    effective_run_id = run_id or get_latest_completed_run_id(engine=engine) or "legacy_initial_run"
 
     with _using_engine(engine) as active_engine:
         with active_engine.begin() as connection:
@@ -239,10 +261,12 @@ def update_group_approval_status(
                         approval_updated_at = CURRENT_TIMESTAMP,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE main_product_template_id = :main_product_template_id
+                      AND run_id = :run_id
                 """),
                 {
                     "status": status,
                     "main_product_template_id": main_product_template_id,
+                    "run_id": effective_run_id,
                 },
             )
     return result.rowcount > 0
@@ -251,6 +275,7 @@ def update_group_approval_status(
 def _get_one(
     table_name: str,
     main_product_template_id: int,
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> dict[str, Any] | None:
     if table_name not in {
@@ -258,66 +283,86 @@ def _get_one(
         "group_inventory_recommendations",
     }:
         raise ValueError("Unsupported group persistence table")
+
+    effective_run_id = run_id or get_latest_completed_run_id(engine=engine) or "legacy_initial_run"
 
     with _using_engine(engine) as active_engine:
         with active_engine.connect() as connection:
             row = connection.execute(
                 text(
                     f"SELECT * FROM {table_name} "
-                    "WHERE main_product_template_id = :main_product_template_id"
+                    "WHERE main_product_template_id = :main_product_template_id "
+                    "  AND run_id = :run_id"
                 ),
-                {"main_product_template_id": main_product_template_id},
+                {
+                    "main_product_template_id": main_product_template_id,
+                    "run_id": effective_run_id,
+                },
             ).mappings().first()
             return dict(row) if row else None
 
 
-def _get_all(table_name: str, engine: Engine | None = None) -> list[dict[str, Any]]:
+def _get_all(
+    table_name: str,
+    run_id: Optional[str] = None,
+    engine: Engine | None = None,
+) -> list[dict[str, Any]]:
     if table_name not in {
         "group_forecast_results",
         "group_inventory_recommendations",
     }:
         raise ValueError("Unsupported group persistence table")
 
+    effective_run_id = run_id or get_latest_completed_run_id(engine=engine) or "legacy_initial_run"
+
     with _using_engine(engine) as active_engine:
         with active_engine.connect() as connection:
             rows = connection.execute(
                 text(
                     f"SELECT * FROM {table_name} "
+                    "WHERE run_id = :run_id "
                     "ORDER BY main_product_template_id"
-                )
+                ),
+                {"run_id": effective_run_id},
             ).mappings().all()
             return [dict(row) for row in rows]
 
 
 def get_group_forecast(
     main_product_template_id: int,
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> dict[str, Any] | None:
     return _get_one(
         "group_forecast_results",
         main_product_template_id,
+        run_id=run_id,
         engine=engine,
     )
 
 
 def get_group_recommendation(
     main_product_template_id: int,
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> dict[str, Any] | None:
     return _get_one(
         "group_inventory_recommendations",
         main_product_template_id,
+        run_id=run_id,
         engine=engine,
     )
 
 
 def get_all_group_forecasts(
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> list[dict[str, Any]]:
-    return _get_all("group_forecast_results", engine=engine)
+    return _get_all("group_forecast_results", run_id=run_id, engine=engine)
 
 
 def get_all_group_recommendations(
+    run_id: Optional[str] = None,
     engine: Engine | None = None,
 ) -> list[dict[str, Any]]:
-    return _get_all("group_inventory_recommendations", engine=engine)
+    return _get_all("group_inventory_recommendations", run_id=run_id, engine=engine)

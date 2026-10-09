@@ -78,6 +78,7 @@ def _base_response(
         "reason_codes": [],
         "dead_stock": None,
         "dead_stock_reason": None,
+        "cold_start_diagnostic": None,
     }
 
 
@@ -143,6 +144,7 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
             {
                 "status": forecast["status"],
                 "reason_codes": ["group_forecast_unavailable"],
+                "cold_start_diagnostic": forecast.get("cold_start_diagnostic"),
             }
         )
         return response
@@ -193,9 +195,19 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
         model_name=forecast.get("best_model") or "trimmed_mean_3",
     )
 
+    from app.odoo.stockout_service import classify_group_monthly_stockouts
+    stockouts = classify_group_monthly_stockouts(
+        demand.get("main_product_template_id", product_id),
+        demand.get("months", []),
+    )
+    stockout_suppressed_cnt = sum(
+        1 for m in stockouts if m.get("stockout_status") == "STOCKOUT_SUPPRESSED"
+    )
+
     recommendation = build_recommendation(
         {
             "next_month_forecast": forecast["next_month_forecast"],
+            "forecast_multistep_values": mf,
             "lead_time_demand": group_lead_time_demand,
             "review_period_demand": group_review_period_demand,
             "forecasted_horizon_demand": group_forecasted_horizon_demand,
@@ -209,6 +221,17 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
             "dead_stock": dead_stock["dead_stock"],
             "demand_pattern": group_pattern,
             "sigma_error": group_sigma_error,
+            "best_model": forecast.get("best_model"),
+            "selection_reason": forecast.get("selection_reason"),
+            "history_months": len(demand.get("months", [])),
+            "usable_observations": len(sales),
+            "stockout_suppressed_months": stockout_suppressed_cnt,
+            "is_short_history": len(sales) < 14,
+            "short_history_fallback_used": len(sales) < 14,
+            "wape": forecast.get("wape"),
+            "mase": forecast.get("mase"),
+            "rmse": forecast.get("rmse") or group_sigma_error,
+            "evaluation_observations": forecast.get("evaluation_observations"),
         }
     )
 
@@ -243,6 +266,13 @@ def get_group_recommendation(product_id: int) -> dict[str, Any] | None:
             "reason_codes": recommendation["reason_codes"],
             "dead_stock": dead_stock["dead_stock"],
             "dead_stock_reason": dead_stock["dead_stock_reason"],
+            "z_score": recommendation.get("z_score"),
+            "sigma_horizon": recommendation.get("sigma_horizon"),
+            "raw_safety_stock": recommendation.get("raw_safety_stock"),
+            "cap_applied": recommendation.get("cap_applied", False),
+            "cap_value": recommendation.get("cap_value"),
+            "zero_purchase_explanation": recommendation.get("zero_purchase_explanation"),
+            "calculation_breakdown": recommendation.get("calculation_breakdown"),
         }
     )
     return response

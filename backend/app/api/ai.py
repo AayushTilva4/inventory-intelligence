@@ -1,19 +1,23 @@
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.auth import get_current_user
 from app.ai.gemini_service import explain_product_intelligence
 from app.db.repository import get_product_intelligence
 from app.forecasting.engine_adapter import load_forecasting_inputs
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
 @router.get("/explain/{product_id}")
 def explain_product(product_id: int):
-
     intelligence = get_product_intelligence(product_id)
 
     if intelligence is None:
@@ -65,7 +69,8 @@ def explain_product(product_id: int):
         }
 
     except Exception as exc:
+        logger.exception("AI explanation failed for product_id=%s", product_id)
         raise HTTPException(
             status_code=500,
-            detail=f"AI explanation failed: {exc}",
-        )
+            detail="AI explanation failed. Please contact the administrator.",
+        )
